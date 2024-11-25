@@ -130,7 +130,9 @@ class Canvas:
         self.buttons = {}
         self.buttons["MENU"] = Button(Rectangle(5, 5, 25, 20), GRAY)
         self.menu_open = False
-        self.menu_horizontal_position = -300
+        self.menu_horizontal_position = -300 # flag for menu position
+
+        self.texture = load_texture("assets/three_dots.jpg")
 
 
     def update(self):
@@ -138,36 +140,43 @@ class Canvas:
         self.toggle_menu()
 
 
+        for key, button in self.buttons.items():
+            button.render()
+            if button.is_clicked():
+                match key:
+                    case "MENU":
+                        if self.menu_open:
+                            self.menu_open = False
+                            self.buttons["MENU"].set_color(GRAY)
+                        else:
+                            self.menu_open = True
+                            self.buttons["MENU"].set_color(DARKGRAY)
+
+                    case "EXIT":
+                        log(TraceLogLevel.LOG_INFO, "Exiting application")
+                        close_window()
+                    case _:
+                        print(f"Unknown button '{key}' clicked.")
+
+
     def toggle_menu(self):
 
         SLIDING_ANIMATION_SPEED = 1500
+        MENU_INITIAL_POSITION = -300
         
         if self.menu_open:
             if self.menu_horizontal_position <= 0:
                 self.menu_horizontal_position += int(SLIDING_ANIMATION_SPEED * get_frame_time())
                 if self.menu_horizontal_position > 0:
                     self.menu_horizontal_position = 0
-
-            self.buttons["MENU"].set_color(DARKGRAY)
             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
 
         else:
-            if self.menu_horizontal_position >= -300:
+            if self.menu_horizontal_position >= MENU_INITIAL_POSITION:
                 self.menu_horizontal_position -= int(SLIDING_ANIMATION_SPEED * get_frame_time())
-                if self.menu_horizontal_position < -300:
-                    self.menu_horizontal_position = -300
-
-            self.buttons["MENU"].set_color(GRAY)
+                if self.menu_horizontal_position < MENU_INITIAL_POSITION:
+                    self.menu_horizontal_position = MENU_INITIAL_POSITION
             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
-
-        for button in self.buttons.values():
-            button.render()
-            if button.is_clicked():
-                if self.menu_open:
-                    self.menu_open = False
-                else:
-                    self.menu_open = True
-
 
 
 class Application():
@@ -186,7 +195,7 @@ class Application():
         if is_render_texture_ready(self.target):
             log(TraceLogLevel.LOG_INFO, "Render Texture loaded successfully")
 
-        set_texture_filter(self.target.texture, TextureFilter.TEXTURE_FILTER_ANISOTROPIC_16X)
+        set_texture_filter(self.target.texture, TextureFilter.TEXTURE_FILTER_BILINEAR)
 
         self.camera = Camera2D(
         Vector2(APP_WIDTH / 2, APP_HEIGHT / 2),        # target
