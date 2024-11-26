@@ -90,7 +90,7 @@ class Button:
             draw_rectangle_rec(self.rectangle, self.color)
             
 
-    def is_hovered(self):
+    def is_hovered(self) -> bool:
 
         mouse = get_mouse_position()
         if check_collision_point_rec(mouse, self.rectangle):
@@ -108,7 +108,7 @@ class Button:
         return False
     
 
-    def is_clicked(self):
+    def is_clicked(self) -> bool:
 
         if self.is_hovered() and is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT):
 
@@ -123,6 +123,93 @@ class Button:
 
 
 
+class Component:
+
+    def __init__(self, position: Vector2, name: str):
+        self.position = position  
+        self.name = name          
+        self.is_dragging = False 
+        self.color = YELLOW
+
+
+    def update(self):
+
+        if self.is_dragging:
+            self.position = get_mouse_position()  
+
+
+    def start_drag(self):
+
+        self.is_dragging = True
+
+
+    def stop_drag(self):
+
+        self.is_dragging = False
+
+
+
+class Wire(Component):
+
+    def __init__(self):
+        current_mouse_pos = get_mouse_position()
+        rec = Rectangle(current_mouse_pos.x, current_mouse_pos.y, 50, 8)
+        super().__init__(Vector2(rec.x, rec.y), "Wire")
+        self.rectangle = rec
+        self.drag_offset = Vector2(0, 0)  
+        self.rotation = 0
+        self.stop_drag()
+
+    def update(self):
+
+        self.rectangle.x = self.position.x
+        self.rectangle.y = self.position.y
+
+        if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT) and is_mouse_button_down(MouseButton.MOUSE_BUTTON_LEFT):
+            if self.is_dragging:
+                mouse_pos = get_mouse_position()
+                self.position = Vector2(mouse_pos.x - self.drag_offset.x, mouse_pos.y - self.drag_offset.y)
+                if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_RIGHT):
+                    self.rotation += 45
+            elif check_collision_point_rec(
+                get_mouse_position(),
+                Rectangle(
+                    self.rectangle.x,
+                    self.rectangle.y,
+                    self.rectangle.width,
+                    self.rectangle.height,
+                ),
+            ):
+                mouse_pos = get_mouse_position()
+                self.drag_offset = Vector2(mouse_pos.x - self.position.x, mouse_pos.y - self.position.y)
+                self.start_drag()
+        else:
+            self.stop_drag()
+
+        draw_rectangle_pro(self.rectangle, vector2_zero(), self.rotation, self.color)
+
+        if not self.is_dragging and check_collision_point_rec(
+            get_mouse_position(),
+            Rectangle(
+                self.rectangle.x,
+                self.rectangle.y,
+                self.rectangle.width,
+                self.rectangle.height,
+            ),
+        ):
+            draw_rectangle_lines_ex(
+                Rectangle(
+                    self.rectangle.x - 5,
+                    self.rectangle.y - 5,
+                    self.rectangle.width + 10,
+                    self.rectangle.height + 10,
+                ),
+                1,
+                RAYWHITE,
+            )
+
+
+
 class Canvas:
 
     def __init__(self):
@@ -134,11 +221,24 @@ class Canvas:
 
         self.texture = load_texture("assets/three_dots.jpg")
 
+        self.wires = []
+
 
     def update(self):
 
-        self.toggle_menu()
+        if is_key_pressed(KeyboardKey.KEY_SPACE):
 
+            self.wires.append(Wire())
+            log(TraceLogLevel.LOG_INFO, "Wire added to canvas")
+
+        if self.wires:
+            for wire in self.wires:
+                wire.update()
+
+        if is_key_pressed(KeyboardKey.KEY_R):
+            self.wires.clear()
+
+        self.toggle_menu()
 
         for key, button in self.buttons.items():
             button.render()
@@ -158,6 +258,7 @@ class Canvas:
                     case _:
                         print(f"Unknown button '{key}' clicked.")
 
+        
 
     def toggle_menu(self):
 
