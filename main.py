@@ -149,35 +149,105 @@ class Component:
 
 
 
-class Wire(Component):
+# class Wire(Component):
+
+#     def __init__(self):
+#         current_mouse_pos = get_mouse_position()
+#         rec = Rectangle(current_mouse_pos.x, current_mouse_pos.y, 50, 8)
+#         super().__init__(Vector2(rec.x, rec.y), "Wire")
+#         self.rectangle = rec
+#         self.drag_offset = Vector2(0, 0)  
+#         self.rotation = 0
+#         self.stop_drag()
+
+#     def update(self):
+
+#         self.rectangle.x = self.position.x
+#         self.rectangle.y = self.position.y
+
+#         if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT) and is_mouse_button_down(MouseButton.MOUSE_BUTTON_LEFT):
+#             if self.is_dragging:
+#                 mouse_pos = get_mouse_position()
+#                 self.position = Vector2(mouse_pos.x - self.drag_offset.x, mouse_pos.y - self.drag_offset.y)
+#                 if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_RIGHT):
+#                     self.rotation += 45
+#             elif check_collision_point_rec(
+#                 get_mouse_position(),
+#                 Rectangle(
+#                     self.rectangle.x,
+#                     self.rectangle.y,
+#                     self.rectangle.width,
+#                     self.rectangle.height,
+#                 ),
+#             ):
+#                 mouse_pos = get_mouse_position()
+#                 self.drag_offset = Vector2(mouse_pos.x - self.position.x, mouse_pos.y - self.position.y)
+#                 self.start_drag()
+#         else:
+#             self.stop_drag()
+
+#         draw_rectangle_pro(self.rectangle, vector2_zero(), self.rotation, self.color)
+
+#         if not self.is_dragging and check_collision_point_rec(
+#             get_mouse_position(),
+#             Rectangle(
+#                 self.rectangle.x,
+#                 self.rectangle.y,
+#                 self.rectangle.width,
+#                 self.rectangle.height,
+#             ),
+#         ):
+#             draw_rectangle_lines_ex(
+#                 Rectangle(
+#                     self.rectangle.x - 5,
+#                     self.rectangle.y - 5,
+#                     self.rectangle.width + 10,
+#                     self.rectangle.height + 10,
+#                 ),
+#                 1,
+#                 RAYWHITE,
+#             )
+
+
+
+class Terminal(Component):
 
     def __init__(self):
         current_mouse_pos = get_mouse_position()
-        rec = Rectangle(current_mouse_pos.x, current_mouse_pos.y, 50, 8)
-        super().__init__(Vector2(rec.x, rec.y), "Wire")
+        rec = Rectangle(current_mouse_pos.x, current_mouse_pos.y, 80, 80)
+        self.texture = load_texture("assets/terminal.png")
+        super().__init__(Vector2(rec.x, rec.y), "Terminal")
         self.rectangle = rec
         self.drag_offset = Vector2(0, 0)  
         self.rotation = 0
         self.stop_drag()
 
-    def update(self):
 
+    def get_hitbox(self) -> Rectangle:
+        return Rectangle(
+            self.rectangle.x - self.rectangle.width / 2,
+            self.rectangle.y - self.rectangle.height / 2,
+            self.rectangle.width,
+            self.rectangle.height,
+        )
+
+    
+    def update(self):
         self.rectangle.x = self.position.x
         self.rectangle.y = self.position.y
 
-        if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT) and is_mouse_button_down(MouseButton.MOUSE_BUTTON_LEFT):
+        if  is_mouse_button_down(MouseButton.MOUSE_BUTTON_LEFT):
             if self.is_dragging:
                 mouse_pos = get_mouse_position()
                 self.position = Vector2(mouse_pos.x - self.drag_offset.x, mouse_pos.y - self.drag_offset.y)
-                if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_RIGHT):
-                    self.rotation += 45
+    
             elif check_collision_point_rec(
                 get_mouse_position(),
                 Rectangle(
-                    self.rectangle.x,
-                    self.rectangle.y,
+                    self.rectangle.x - self.rectangle.width / 2,
+                    self.rectangle.y - self.rectangle.width / 2,
                     self.rectangle.width,
-                    self.rectangle.height,
+                    self.rectangle.width,
                 ),
             ):
                 mouse_pos = get_mouse_position()
@@ -186,27 +256,34 @@ class Wire(Component):
         else:
             self.stop_drag()
 
-        draw_rectangle_pro(self.rectangle, vector2_zero(), self.rotation, self.color)
+        # draw_rectangle_pro(self.rectangle, Vector2(self.rectangle.width / 2, self.rectangle.height / 2), self.rotation, self.color)
+        draw_texture_pro(self.texture, Rectangle(0, 0, self.texture.width, self.texture.height), Rectangle(self.rectangle.x, self.rectangle.y, self.rectangle.width, self.rectangle.height), Vector2(self.rectangle.width / 2, self.rectangle.height / 2), self.rotation, WHITE)
 
         if not self.is_dragging and check_collision_point_rec(
             get_mouse_position(),
             Rectangle(
-                self.rectangle.x,
-                self.rectangle.y,
+                self.rectangle.x - self.rectangle.width / 2,
+                self.rectangle.y - self.rectangle.width / 2,
                 self.rectangle.width,
-                self.rectangle.height,
+                self.rectangle.width,
             ),
         ):
             draw_rectangle_lines_ex(
                 Rectangle(
-                    self.rectangle.x - 5,
-                    self.rectangle.y - 5,
-                    self.rectangle.width + 10,
-                    self.rectangle.height + 10,
+                    self.rectangle.x - self.rectangle.width / 2,
+                    self.rectangle.y - self.rectangle.width / 2,
+                    self.rectangle.width,
+                    self.rectangle.width,
                 ),
                 1,
                 RAYWHITE,
             )
+
+            if is_key_pressed(KeyboardKey.KEY_A) or is_key_pressed(KeyboardKey.KEY_LEFT):
+                    self.rotation -= 45
+
+            if is_key_pressed(KeyboardKey.KEY_D) or is_key_pressed(KeyboardKey.KEY_RIGHT):
+                    self.rotation += 45
 
 
 
@@ -221,22 +298,22 @@ class Canvas:
 
         self.texture = load_texture("assets/three_dots.jpg")
 
-        self.wires = []
+        self.test = []
 
 
     def update(self):
 
         if is_key_pressed(KeyboardKey.KEY_SPACE):
 
-            self.wires.append(Wire())
+            self.test.append(Terminal())
             log(TraceLogLevel.LOG_INFO, "Wire added to canvas")
 
-        if self.wires:
-            for wire in self.wires:
+        if self.test:
+            for wire in self.test:
                 wire.update()
 
         if is_key_pressed(KeyboardKey.KEY_R):
-            self.wires.clear()
+            self.test.clear()
 
         self.toggle_menu()
 
@@ -280,6 +357,7 @@ class Canvas:
             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
 
 
+
 class Application():
 
     def __init__(self, window_width: int, window_height: int):
@@ -305,6 +383,7 @@ class Application():
         1.0)                                           # zoom
 
         self.canvas = Canvas()
+
 
 
     def __call__(self):
