@@ -13,6 +13,11 @@ global log
 # CONSTANTS
 APP_WIDTH = 800
 APP_HEIGHT = 450
+TEXTURE = 0
+IMAGE = 1
+FONT = 2
+SOUND = 3
+MUSIC = 4
 
 
 
@@ -149,6 +154,51 @@ class Component:
 
 
 
+class ResourceManager:
+
+
+    def __init__(self):
+
+        self.resources = {} 
+
+
+
+    def load(self, ID: str, filepath: str, type: int):
+
+        enumerate_resources = {
+            0: load_texture,
+            1: load_image,
+            2: load_font,
+            3: load_sound,
+            4: load_music_stream,
+        }
+
+        match type:
+
+            case 0:
+                self.resources[ID] = enumerate_resources[type](filepath)
+
+            case 1:
+                self.resources[ID] = enumerate_resources[type](filepath)
+
+            case 2:
+                self.resources[ID] = enumerate_resources[type](filepath)
+
+            case 4:
+                self.resources[ID] = enumerate_resources[type](filepath)
+
+            case _:
+                log(TraceLogLevel.LOG_ERROR, "Unknown resource type")
+
+
+
+    def get(self, ID: str):
+
+        return self.resources.get(ID, None)
+
+
+
+
 # class Wire(Component):
 
 #     def __init__(self):
@@ -208,7 +258,7 @@ class Component:
 #                 RAYWHITE,
 #             )
 
-
+ 
 
 class Terminal(Component):
 
@@ -291,30 +341,88 @@ class Canvas:
 
     def __init__(self):
 
+        # grid settings
+        self.grid_size = 50 
+        self.sub_grid_divisions = 5 
+        self.zoom_level = 1.0  
+        self.min_zoom = 0.2  
+        self.max_zoom = 3.0  
+        self.offset = Vector2(0, 0) 
+
+        # buttons
         self.buttons = {}
         self.buttons["MENU"] = Button(Rectangle(5, 5, 25, 20), GRAY)
         self.menu_open = False
         self.menu_horizontal_position = -300 # flag for menu position
 
-        self.texture = load_texture("assets/three_dots.jpg")
-
-        self.test = []
-
-
     def update(self):
 
-        if is_key_pressed(KeyboardKey.KEY_SPACE):
+        zoom_increment = 0.1
+        mouse_wheel_move = get_mouse_wheel_move()
+        if mouse_wheel_move != 0:
+            prev_zoom = self.zoom_level
+            self.zoom_level += zoom_increment * mouse_wheel_move
+            self.zoom_level = clamp(self.zoom_level, self.min_zoom, self.max_zoom)
 
-            self.test.append(Terminal())
-            log(TraceLogLevel.LOG_INFO, "Wire added to canvas")
 
-        if self.test:
-            for wire in self.test:
-                wire.update()
+            mouse_pos = get_mouse_position()
+            zoom_factor = self.zoom_level / prev_zoom
+            self.offset.x = mouse_pos.x - (mouse_pos.x - self.offset.x) * zoom_factor
+            self.offset.y = mouse_pos.y - (mouse_pos.y - self.offset.y) * zoom_factor
 
-        if is_key_pressed(KeyboardKey.KEY_R):
-            self.test.clear()
 
+        if is_mouse_button_down(MouseButton.MOUSE_BUTTON_MIDDLE):
+            mouse_delta = get_mouse_delta()
+            self.offset.x += mouse_delta.x
+            self.offset.y += mouse_delta.y
+
+    def draw(self):
+
+        screen_width = APP_WIDTH
+        screen_height = APP_HEIGHT
+
+        start_x = -self.offset.x / (self.grid_size * self.zoom_level)
+        end_x = (screen_width - self.offset.x) / (self.grid_size * self.zoom_level)
+        start_y = -self.offset.y / (self.grid_size * self.zoom_level)
+        end_y = (screen_height - self.offset.y) / (self.grid_size * self.zoom_level)
+
+        for x in range(int(start_x), int(end_x) + 1):
+            draw_line(
+                int(x * self.grid_size * self.zoom_level + self.offset.x),
+                0,
+                int(x * self.grid_size * self.zoom_level + self.offset.x),
+                screen_height,
+                GRAY
+            )
+        for y in range(int(start_y), int(end_y) + 1):
+            draw_line(
+                0,
+                int(y * self.grid_size * self.zoom_level + self.offset.y),
+                screen_width,
+                int(y * self.grid_size * self.zoom_level + self.offset.y),
+                GRAY
+            )
+
+        if self.zoom_level > 2.0:
+            sub_grid_size = self.grid_size / self.sub_grid_divisions
+            for x in range(int(start_x * self.sub_grid_divisions), int(end_x * self.sub_grid_divisions) + 1):
+                draw_line(
+                    int(x * sub_grid_size * self.zoom_level + self.offset.x),
+                    0,
+                    int(x * sub_grid_size * self.zoom_level + self.offset.x),
+                    screen_height,
+                    GRAY
+                )
+            for y in range(int(start_y * self.sub_grid_divisions), int(end_y * self.sub_grid_divisions) + 1):
+                draw_line(
+                    0,
+                    int(y * sub_grid_size * self.zoom_level + self.offset.y),
+                    screen_width,
+                    int(y * sub_grid_size * self.zoom_level + self.offset.y),
+                    GRAY
+                )
+
+        
         self.toggle_menu()
 
         for key, button in self.buttons.items():
@@ -355,6 +463,77 @@ class Canvas:
                 if self.menu_horizontal_position < MENU_INITIAL_POSITION:
                     self.menu_horizontal_position = MENU_INITIAL_POSITION
             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
+
+
+
+# class Canvas:
+
+#     def __init__(self):
+
+#         self.buttons = {}
+#         self.buttons["MENU"] = Button(Rectangle(5, 5, 25, 20), GRAY)
+#         self.menu_open = False
+#         self.menu_horizontal_position = -300 # flag for menu position
+
+#         self.texture = load_texture("assets/three_dots.jpg")
+
+#         self.test = []
+
+
+#     def update(self):
+
+#         if is_key_pressed(KeyboardKey.KEY_SPACE):
+
+#             self.test.append(Terminal())
+#             log(TraceLogLevel.LOG_INFO, "Wire added to canvas")
+
+#         if self.test:
+#             for wire in self.test:
+#                 wire.update()
+
+#         if is_key_pressed(KeyboardKey.KEY_R):
+#             self.test.clear()
+
+#         self.toggle_menu()
+
+#         for key, button in self.buttons.items():
+#             button.render()
+#             if button.is_clicked():
+#                 match key:
+#                     case "MENU":
+#                         if self.menu_open:
+#                             self.menu_open = False
+#                             self.buttons["MENU"].set_color(GRAY)
+#                         else:
+#                             self.menu_open = True
+#                             self.buttons["MENU"].set_color(DARKGRAY)
+
+#                     case "EXIT":
+#                         log(TraceLogLevel.LOG_INFO, "Exiting application")
+#                         close_window()
+#                     case _:
+#                         print(f"Unknown button '{key}' clicked.")
+
+        
+
+#     def toggle_menu(self):
+
+#         SLIDING_ANIMATION_SPEED = 1500
+#         MENU_INITIAL_POSITION = -300
+        
+#         if self.menu_open:
+#             if self.menu_horizontal_position <= 0:
+#                 self.menu_horizontal_position += int(SLIDING_ANIMATION_SPEED * get_frame_time())
+#                 if self.menu_horizontal_position > 0:
+#                     self.menu_horizontal_position = 0
+#             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
+
+#         else:
+#             if self.menu_horizontal_position >= MENU_INITIAL_POSITION:
+#                 self.menu_horizontal_position -= int(SLIDING_ANIMATION_SPEED * get_frame_time())
+#                 if self.menu_horizontal_position < MENU_INITIAL_POSITION:
+#                     self.menu_horizontal_position = MENU_INITIAL_POSITION
+#             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
 
 
 
@@ -421,6 +600,8 @@ class Application():
             clear_background(DARKGRAY)
 
             self.canvas.update()
+
+            self.canvas.draw()
                         
             end_texture_mode()
  
