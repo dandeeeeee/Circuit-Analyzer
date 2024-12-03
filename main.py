@@ -531,14 +531,102 @@ class Canvas:
 
 
 
+def draw_centered_text_ex(text, font, font_size, y_position, color=RAYWHITE):
+    # Measure the width of the text with the specified font and font size
+    text_width = measure_text_ex(font, text, font_size, 1).x
+
+    # Calculate the horizontal center position
+    x_position = (APP_WIDTH - text_width) // 2
+
+    # Draw the text at the calculated position using draw_text_ex
+    draw_text_ex(font, text, Vector2(x_position, y_position), font_size, 0, color)
+
+
+
+class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
+
+    def __init__(self, rect: Rectangle, font, base_font_size=80, min_font_size=10, roundness=0.25):
+        self.rect = rect
+        self.font = font
+        self.text = ""
+        self.is_focused = False
+        self.base_font_size = base_font_size
+        self.min_font_size = min_font_size
+        self.roundness = roundness  # Roundness of the rectangle edges (0.0 to 1.0)
+
+    def handle_input(self):
+        """Handle keyboard input when the message box is focused."""
+        if self.is_focused:
+            key = get_key_pressed()
+            while key > 0:  # Process each key press
+                if key == KeyboardKey.KEY_BACKSPACE and len(self.text) > 0:
+                    self.text = self.text[:-1]
+                elif key >= 48 and key <= 57:  # Only allow numeric input (keys 0-9)
+                    self.text += chr(key)
+                key = get_key_pressed()
+
+    def fit_text_size(self) -> int:
+        """Adjust font size to fit the text inside the rectangle."""
+        font_size = self.base_font_size
+        text_width = measure_text_ex(self.font, self.text, font_size, 0).x
+
+        while text_width > self.rect.width - 10 and font_size > self.min_font_size:
+            font_size -= 1
+            text_width = measure_text_ex(self.font, self.text, font_size, 0).x
+
+        return font_size
+
+    def render(self):
+        """Render the message box with its current text."""
+        # Draw the rounded rectangle
+        draw_rectangle_rounded(self.rect, self.roundness, 10, GRAY if not self.is_focused else LIGHTGRAY)
+
+        # Calculate text position and size
+        font_size = self.fit_text_size()
+        text_width = measure_text_ex(self.font, self.text, font_size, 0).x
+        text_height = measure_text_ex(self.font, self.text, font_size, 0).y
+        text_x = self.rect.x + (self.rect.width - text_width) / 2
+        text_y = self.rect.y + (self.rect.height - text_height) / 2
+
+        # Draw the text
+        draw_text_ex(self.font, self.text, Vector2(text_x, text_y), font_size, 0, RAYWHITE)
+
+    def check_focus(self):
+        """Check if the message box is clicked and toggle focus."""
+        if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT):
+            mouse_pos = get_mouse_position()
+            if check_collision_point_rec(mouse_pos, self.rect):
+                self.is_focused = True
+            else:
+                self.is_focused = False
+
+
+
+
 class Calculator:
 
-    def init(self):
-        pass
+    def __init__(self):
+
+        self.column_box = MessageBox(Rectangle(200, 125, 150, 150), RM.get("mainfont"))
+        self.row_box = MessageBox(Rectangle(450, 125, 150, 150), RM.get("mainfont"))
 
 
-    def update(self):
-        pass
+    def update(self) -> str:
+
+        draw_centered_text_ex("GAUSSIAN ELIMINATION", RM.get("mainfont"), 50, 25, RAYWHITE)
+
+        self.column_box.check_focus()
+        self.row_box.check_focus()
+        self.column_box.handle_input()
+        self.row_box.handle_input()
+
+        self.column_box.render()
+        self.row_box.render()
+
+        draw_centered_text_ex("X", RM.get("mainfont"), 100, 150, RAYWHITE)
+
+        return "calculator"
+
 
 
 
@@ -679,11 +767,11 @@ class Application():
 
         self.states = {
             "canvas": self.canvas.update,
-            #"calculator": self.calculator.update,
+            "calculator": self.calculator.update,
             "main_menu": self.main_menu.update,
         }
 
-        self.app_state = "main_menu"
+        self.app_state = "calculator"
 
 
     def __call__(self):
@@ -722,12 +810,11 @@ class Application():
             # BOOM GUMANA SPAGHETTI CODE 101% WORKING
             if self.app_state in self.states.keys():
                 self.app_state = self.states[self.app_state]()
-                self.states[self.app_state]()
                         
             end_texture_mode()
  
             begin_drawing()
-            begin_mode_2d(self.camera)
+            # begin_mode_2d(self.camera)
             clear_background(BLANK)
             draw_texture_pro(
                 self.target.texture, 
@@ -738,7 +825,7 @@ class Application():
                 0, 
                 WHITE)
             
-            end_mode_2d()
+            # end_mode_2d()
             end_drawing()
         
     
