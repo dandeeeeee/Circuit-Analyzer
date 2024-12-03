@@ -8,11 +8,13 @@ import threading
 
 # GLOBALS
 global log
+global RM
 
 
 # CONSTANTS
 APP_WIDTH = 800
 APP_HEIGHT = 450
+
 TEXTURE = 0
 IMAGE = 1
 FONT = 2
@@ -67,6 +69,42 @@ class TraceLog:
             }
 
             print(f"{color}{level_names.get(level, '[UNKNOWN]')}: {text}{reset_color}")
+
+
+
+class ResourceManager:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls, *args, **kwargs):
+        with cls._lock:
+            if not cls._instance:
+                cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not hasattr(self, "resources"):
+            self.resources = {}
+
+    def load(self, ID: str, filepath: str, type: int):
+        enumerate_resources = {
+            0: load_texture,
+            1: load_image,
+            2: load_font_ex,
+            3: load_sound,
+            4: load_music_stream,
+        }
+
+        if type in enumerate_resources:
+            if type == FONT: # font loading exception
+                self.resources[ID] = enumerate_resources[type](filepath, 126, None, 0)
+            else: 
+                self.resources[ID] = enumerate_resources[type](filepath)
+        else:
+            log(TraceLogLevel.LOG_ERROR, "Unknown resource type")
+
+    def get(self, ID: str):
+        return self.resources.get(ID, None)
 
 
 
@@ -151,51 +189,6 @@ class Component:
     def stop_drag(self):
 
         self.is_dragging = False
-
-
-
-class ResourceManager:
-
-
-    def __init__(self):
-
-        self.resources = {} 
-
-
-
-    def load(self, ID: str, filepath: str, type: int):
-
-        enumerate_resources = {
-            0: load_texture,
-            1: load_image,
-            2: load_font,
-            3: load_sound,
-            4: load_music_stream,
-        }
-
-        match type:
-
-            case 0:
-                self.resources[ID] = enumerate_resources[type](filepath)
-
-            case 1:
-                self.resources[ID] = enumerate_resources[type](filepath)
-
-            case 2:
-                self.resources[ID] = enumerate_resources[type](filepath)
-
-            case 4:
-                self.resources[ID] = enumerate_resources[type](filepath)
-
-            case _:
-                log(TraceLogLevel.LOG_ERROR, "Unknown resource type")
-
-
-
-    def get(self, ID: str):
-
-        return self.resources.get(ID, None)
-
 
 
 
@@ -537,6 +530,25 @@ class Canvas:
 
 
 
+class Calculator:
+
+    def init(self):
+        pass
+
+
+    def update(self):
+        pass
+
+
+
+def MainMenu():
+
+    draw_text_ex(RM.get("mainfont"), "Circuit Calculator", Vector2(10, 10), 80, 0, RAYWHITE) # ADD TYPING ANIMATION
+
+
+
+
+
 class Application():
 
     def __init__(self, window_width: int, window_height: int):
@@ -544,7 +556,6 @@ class Application():
         self.window_width = window_width
         self.window_height = window_height
         
-        set_config_flags(ConfigFlags.FLAG_WINDOW_RESIZABLE | ConfigFlags.FLAG_VSYNC_HINT)
         set_config_flags(ConfigFlags.FLAG_WINDOW_RESIZABLE | ConfigFlags.FLAG_VSYNC_HINT)
         init_window(self.window_width, self.window_height, "Circuit Calculator")
         set_target_fps(60)
@@ -562,6 +573,7 @@ class Application():
         1.0)                                           # zoom
 
         self.canvas = Canvas()
+        self.calculator = Calculator()
 
 
 
@@ -594,14 +606,15 @@ class Application():
             #     self.camera.zoom += mouse_wheel_move * 0.1  
             #     self.camera.zoom = clamp(self.camera.zoom, 1.0, 5.0)  
 
-
             begin_texture_mode(self.target)
             
             clear_background(DARKGRAY)
 
-            self.canvas.update()
+            MainMenu()
 
-            self.canvas.draw()
+            # self.canvas.update()
+
+            # self.canvas.draw()
                         
             end_texture_mode()
  
@@ -628,9 +641,20 @@ class Application():
 
 
 
+def load_resources():
+
+    RM.load("mainfont", "assets/fonts/JetBrainsMono-Bold.ttf", FONT)
+    RM.load("mainfont-mid", "assets/fonts/JetBrainsMono-Medium.ttf", FONT)
+    RM.load("mainfont-reg", "assets/fonts/JetBrainsMono-Regular.ttf", FONT)
+    RM.load("mainfont-semi", "assets/fonts/JetBrainsMono-SemiBold.ttf", FONT)
+
+
+
 if __name__ == "__main__":
 
     log = TraceLog()
+    RM = ResourceManager()
     window = Application(800, 600)
+    load_resources()
     window()
     del window
