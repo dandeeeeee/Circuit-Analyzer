@@ -539,13 +539,81 @@ class Calculator:
     def update(self):
         pass
 
+import time
+
+class MainMenu:
+
+    def __init__(self):
+        self.title = "Circuit "
+        self.words = ["Calculator", "Analyzer"]  
+        self.current_word_index = 0
+
+        self.font = RM.get("mainfont")
+        self.position = Vector2(10, 10)
+        self.font_size = 80
+        self.spacing = 0
+        self.text_color = RAYWHITE
+
+        self.displayed_text = ""
+        self.char_index = 0
+        self.cursor_visible = True
+        self.cursor_timer = 0
+        self.typing_speed = 0.1  # seconds per letter
+        self.cursor_blink_speed = 0.5  # seconds for cursor to toggle visibility
+        self.start_time = time.time()
+
+        self.is_typing = True  # True if typing, False if erasing
 
 
-def MainMenu():
+    def update(self):
 
-    draw_text_ex(RM.get("mainfont"), "Circuit Calculator", Vector2(10, 10), 80, 0, RAYWHITE) # ADD TYPING ANIMATION
+        current_time = time.time()
+
+        if self.is_typing:
+            full_text = self.title + self.words[self.current_word_index]
+            if self.char_index < len(full_text) and current_time - self.start_time >= self.typing_speed:
+                self.displayed_text += full_text[self.char_index]
+                self.char_index += 1
+                self.start_time = current_time
+            elif self.char_index == len(full_text):  
+                self.is_typing = False
+                self.start_time = current_time + 2 # Wait a bit before erasing
+        else:
+            if self.char_index > len(self.title) and current_time - self.start_time >= self.typing_speed:
+                self.char_index -= 1
+                self.displayed_text = self.displayed_text[:-1]
+                self.start_time = current_time
+            elif self.char_index == len(self.title):  # Fully erased back to "Circuit "
+                self.current_word_index = (self.current_word_index + 1) % len(self.words)  # Cycle words
+                self.is_typing = True
+                self.start_time = current_time + 0.5  # Wait a bit before typing again
+
+        # Cursor blink
+        self.cursor_timer += get_frame_time()
+        if self.cursor_timer >= self.cursor_blink_speed:
+            self.cursor_visible = not self.cursor_visible
+            self.cursor_timer = 0
+
+        # Drawing
+        draw_text_ex(self.font, self.displayed_text, self.position, self.font_size, self.spacing, self.text_color)
+
+        # Draw cursor
+        if self.cursor_visible:
+            cursor_x = self.position.x + measure_text_ex(self.font, self.displayed_text, self.font_size, self.spacing).x + 5
+            cursor_y = self.position.y + self.font_size * 0.12
+            cursor_width = 25
+            cursor_height = int(self.font_size * 0.7)
+            draw_rectangle(int(cursor_x), int(cursor_y), int(cursor_width), int(cursor_height), fade(self.text_color, 0.9))
 
 
+
+
+def load_resources():
+
+        RM.load("mainfont", "assets/fonts/JetBrainsMono-Bold.ttf", FONT)
+        RM.load("mainfont-mid", "assets/fonts/JetBrainsMono-Medium.ttf", FONT)
+        RM.load("mainfont-reg", "assets/fonts/JetBrainsMono-Regular.ttf", FONT)
+        RM.load("mainfont-semi", "assets/fonts/JetBrainsMono-SemiBold.ttf", FONT)
 
 
 
@@ -559,6 +627,8 @@ class Application():
         set_config_flags(ConfigFlags.FLAG_WINDOW_RESIZABLE | ConfigFlags.FLAG_VSYNC_HINT)
         init_window(self.window_width, self.window_height, "Circuit Calculator")
         set_target_fps(60)
+
+        load_resources()
 
         self.target = load_render_texture(APP_WIDTH, APP_HEIGHT)
         if is_render_texture_ready(self.target):
@@ -574,6 +644,7 @@ class Application():
 
         self.canvas = Canvas()
         self.calculator = Calculator()
+        self.main_menu = MainMenu()
 
 
 
@@ -610,11 +681,11 @@ class Application():
             
             clear_background(DARKGRAY)
 
-            MainMenu()
-
             # self.canvas.update()
 
             # self.canvas.draw()
+
+            self.main_menu.update()
                         
             end_texture_mode()
  
@@ -641,20 +712,10 @@ class Application():
 
 
 
-def load_resources():
-
-    RM.load("mainfont", "assets/fonts/JetBrainsMono-Bold.ttf", FONT)
-    RM.load("mainfont-mid", "assets/fonts/JetBrainsMono-Medium.ttf", FONT)
-    RM.load("mainfont-reg", "assets/fonts/JetBrainsMono-Regular.ttf", FONT)
-    RM.load("mainfont-semi", "assets/fonts/JetBrainsMono-SemiBold.ttf", FONT)
-
-
-
 if __name__ == "__main__":
 
     log = TraceLog()
     RM = ResourceManager()
     window = Application(800, 600)
-    load_resources()
     window()
     del window
