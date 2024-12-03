@@ -1,6 +1,7 @@
 from pyray import *
 import threading
 
+
 # ONE BACKSPACE     - FLOW
 # TWO BACKSPACE     - FUNCTIONS
 # THREE BACKSPACE   - CLASSES
@@ -9,7 +10,6 @@ import threading
 # GLOBALS
 global log
 global RM
-
 
 # CONSTANTS
 APP_WIDTH = 800
@@ -97,7 +97,7 @@ class ResourceManager:
 
         if type in enumerate_resources:
             if type == FONT: # font loading exception
-                self.resources[ID] = enumerate_resources[type](filepath, 126, None, 0)
+                self.resources[ID] = enumerate_resources[type](filepath, 320, None, 0)
             else: 
                 self.resources[ID] = enumerate_resources[type](filepath)
         else:
@@ -348,7 +348,7 @@ class Canvas:
         self.menu_open = False
         self.menu_horizontal_position = -300 # flag for menu position
 
-    def update(self):
+    def update(self) -> str:
 
         zoom_increment = 0.1
         mouse_wheel_move = get_mouse_wheel_move()
@@ -369,8 +369,7 @@ class Canvas:
             self.offset.x += mouse_delta.x
             self.offset.y += mouse_delta.y
 
-    def draw(self):
-
+        #DRAW
         screen_width = APP_WIDTH
         screen_height = APP_HEIGHT
 
@@ -435,6 +434,8 @@ class Canvas:
                         close_window()
                     case _:
                         print(f"Unknown button '{key}' clicked.")
+
+        return "canvas"
 
         
 
@@ -539,35 +540,40 @@ class Calculator:
     def update(self):
         pass
 
-import time
+
 
 class MainMenu:
 
     def __init__(self):
+
+        self.font = RM.get("mainfont")
+
+        # Title animation
         self.title = "Circuit "
         self.words = ["Calculator", "Analyzer"]  
         self.current_word_index = 0
-
-        self.font = RM.get("mainfont")
-        self.position = Vector2(10, 10)
+        self.position = Vector2(30, 10)
         self.font_size = 80
         self.spacing = 0
         self.text_color = RAYWHITE
-
         self.displayed_text = ""
         self.char_index = 0
         self.cursor_visible = True
         self.cursor_timer = 0
         self.typing_speed = 0.1  # seconds per letter
         self.cursor_blink_speed = 0.5  # seconds for cursor to toggle visibility
-        self.start_time = time.time()
-
+        self.start_time = get_time()
         self.is_typing = True  # True if typing, False if erasing
 
+        self.buttons = {}
+        self.buttons["FREEHAND"] = Button(Rectangle(30, 100, 400, 150), GRAY)
+        self.buttons["BUILDER"] = Button(Rectangle(30, 275, 400, 150), GRAY)
+        self.buttons["MATRIX"] = Button(Rectangle(450, 100, 310, 325), GRAY)
 
-    def update(self):
 
-        current_time = time.time()
+    def animate_title(self):
+
+        current_time = get_time()
 
         if self.is_typing:
             full_text = self.title + self.words[self.current_word_index]
@@ -606,6 +612,31 @@ class MainMenu:
             draw_rectangle(int(cursor_x), int(cursor_y), int(cursor_width), int(cursor_height), fade(self.text_color, 0.9))
 
 
+    def update(self) -> str:
+
+        draw_rectangle_gradient_v(0, 0, get_screen_width(), get_screen_height(), GRAY, LIGHTGRAY)
+
+        self.animate_title()
+
+        for key, button in self.buttons.items():
+            button.render()
+            if button.is_clicked():
+                match key:
+                    case "FREEHAND":
+                        log(TraceLogLevel.LOG_INFO, "Freehand button clicked")
+                        return "canvas"
+
+                    case "BUILDER":
+                        log(TraceLogLevel.LOG_INFO, "Builder button clicked")
+                        
+                    case "MATRIX":
+                        log(TraceLogLevel.LOG_INFO, "Matrix button clicked")
+                        
+                    case _:
+                        print(f"Unknown button '{key}' clicked.")
+
+        return "main_menu"
+        
 
 
 def load_resources():
@@ -646,6 +677,13 @@ class Application():
         self.calculator = Calculator()
         self.main_menu = MainMenu()
 
+        self.states = {
+            "canvas": self.canvas.update,
+            #"calculator": self.calculator.update,
+            "main_menu": self.main_menu.update,
+        }
+
+        self.app_state = "main_menu"
 
 
     def __call__(self):
@@ -681,11 +719,10 @@ class Application():
             
             clear_background(DARKGRAY)
 
-            # self.canvas.update()
-
-            # self.canvas.draw()
-
-            self.main_menu.update()
+            # BOOM GUMANA SPAGHETTI CODE 101% WORKING
+            if self.app_state in self.states.keys():
+                self.app_state = self.states[self.app_state]()
+                self.states[self.app_state]()
                         
             end_texture_mode()
  
