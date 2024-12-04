@@ -107,62 +107,61 @@ class ResourceManager:
         return self.resources.get(ID, None)
 
 
-
 class Button:
     
-    def __init__(self, rec: Rectangle, color: Color, text = None, font_size = None, icon = None, roundness = None):
+    def __init__(self, rec: Rectangle, color: Color, text=None, font_size=30, icon=None, roundness=None):
 
         self.rectangle = rec
         self.color = color
         self.text = text
+        self.font = RM.get("mainfont")
         self.font_size = font_size
         self.icon = icon
         self.roundness = roundness
 
-
     def render(self):
 
         if self.roundness:
-
             draw_rectangle_rounded(self.rectangle, self.roundness, 0, self.color)
-            
-            # add text rendering 
-
         else:
-
             draw_rectangle_rec(self.rectangle, self.color)
-            
+        
+        if self.text and self.font:
+            self.draw_text_centered(self.text, self.font, self.font_size)
+
+    def draw_text_centered(self, text, font, font_size):
+
+        text_width = measure_text_ex(font, text, font_size, 0).x
+        text_height = font_size 
+
+        x = self.rectangle.x + (self.rectangle.width - text_width) / 2
+        y = self.rectangle.y + (self.rectangle.height - text_height) / 2
+
+        draw_text_ex(self.font, text, Vector2(x, y), font_size, 0, DARKGRAY if not self.is_hovered() else WHITE)
+
 
     def is_hovered(self) -> bool:
 
         mouse = get_mouse_position()
         if check_collision_point_rec(mouse, self.rectangle):
-
             if self.roundness:
-
                 draw_rectangle_rounded_lines(self.rectangle, self.roundness, 0, 1, RAYWHITE)
-
             else:
-                
                 draw_rectangle_lines_ex(self.rectangle, 1, RAYWHITE)
-
             return True
-        
         return False
-    
+
 
     def is_clicked(self) -> bool:
 
         if self.is_hovered() and is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT):
-
             return True
-        
         return False
-        
+
 
     def set_color(self, color: Color):
 
-        self.color = color  
+        self.color = color
 
 
 
@@ -414,6 +413,8 @@ class Canvas:
                     GRAY
                 )
 
+        draw_rectangle(200, 200, 100, 100, WHITE)
+
         
         self.toggle_menu()
 
@@ -602,28 +603,150 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
 
 
 
-
 class Calculator:
-
     def __init__(self):
-
+        # Message boxes for matrix size input
         self.column_box = MessageBox(Rectangle(200, 125, 150, 150), RM.get("mainfont"))
         self.row_box = MessageBox(Rectangle(450, 125, 150, 150), RM.get("mainfont"))
 
+        # Buttons
+        self.buttons = {
+            "NEXT": Button(Rectangle(325, 350, 150, 50), GRAY, text="NEXT")
+        }
 
-    def update(self) -> str:
+        # Matrix message boxes
+        self.matrix_boxes = []  # List of message boxes for matrix input
+        self.matrix_size = 0  # Current matrix size (determined by row/column input)
 
+        # Camera2D setup for grid panning and zooming
+        self.camera = Camera2D(
+        Vector2(APP_WIDTH / 2, APP_HEIGHT / 2),        # target
+        Vector2(APP_WIDTH / 2, APP_HEIGHT / 2),        # offset
+        0,                                             # rotation                   
+        1.0)  
+
+        # Mouse panning state
+        self.is_panning = False
+        self.last_mouse_position = Vector2(0, 0)
+
+    def generate_matrix_boxes(self):
+        """Generate a grid of message boxes for matrix input based on matrix size."""
+        self.matrix_boxes.clear()  # Clear any existing matrix boxes
+
+        # Fixed cell size for simplicity
+        cell_size = 50
+        padding = 5  # Space between cells
+
+        # Calculate starting position for the grid
+        grid_width = self.matrix_size * (cell_size + padding) - padding
+        grid_height = self.matrix_size * (cell_size + padding) - padding
+        start_x = (APP_WIDTH - grid_width) // 2
+        start_y = (APP_HEIGHT - grid_height) // 2
+
+        for i in range(self.matrix_size):
+            row_boxes = []
+            for j in range(self.matrix_size):
+                x = start_x + j * (cell_size + padding)
+                y = start_y + i * (cell_size + padding)
+                rect = Rectangle(x, y, cell_size, cell_size)
+                row_boxes.append(MessageBox(rect, RM.get("mainfont"), base_font_size=20, min_font_size=10))
+            self.matrix_boxes.append(row_boxes)
+
+    def render_matrix_boxes(self):
+        """Render all matrix message boxes and handle their interactions."""
+        for row in self.matrix_boxes:
+            for box in row:
+                # Translate the mouse position to the world position
+                mouse_pos_world = get_screen_to_world_2d(get_mouse_position(), self.camera)
+
+                # Update the rectangle's focus state based on the translated mouse position
+                if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT):
+                    if check_collision_point_rec(mouse_pos_world, box.rect):
+                        box.is_focused = True
+                    else:
+                        box.is_focused = False
+
+                # Handle input and render the box
+                box.handle_input()
+                box.render()
+
+    def handle_camera_input(self):
+        """Handle Camera2D input for zooming and panning."""
+        # Zoom with the mouse wheel
+        mouse_wheel = get_mouse_wheel_move()
+        if mouse_wheel != 0:
+            self.camera.zoom += mouse_wheel * 0.1  # Adjust zoom speed
+            self.camera.zoom = max(0.1, min(self.camera.zoom, 10.0))  # Clamp zoom level
+
+        # Pan with middle mouse button
+        if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_MIDDLE):
+            self.is_panning = True
+            self.last_mouse_position = get_mouse_position()
+
+        if self.is_panning:
+            if is_mouse_button_down(MouseButton.MOUSE_BUTTON_MIDDLE):
+                current_mouse_position = get_mouse_position()
+                delta = Vector2(
+                    current_mouse_position.x - self.last_mouse_position.x,
+                    current_mouse_position.y - self.last_mouse_position.y,
+                )
+                self.camera.target.x -= delta.x / self.camera.zoom
+                self.camera.target.y -= delta.y / self.camera.zoom
+                self.last_mouse_position = current_mouse_position
+            else:
+                self.is_panning = False
+
+    def update_matrix_size(self) -> bool:
+        """Handle matrix size input and transition to matrix content input."""
+        # Draw title
         draw_centered_text_ex("GAUSSIAN ELIMINATION", RM.get("mainfont"), 50, 25, RAYWHITE)
 
+        # Check and handle input for row and column boxes
         self.column_box.check_focus()
         self.row_box.check_focus()
         self.column_box.handle_input()
         self.row_box.handle_input()
 
+        # Render row and column boxes
         self.column_box.render()
         self.row_box.render()
 
+        # Draw "X" between the boxes
         draw_centered_text_ex("X", RM.get("mainfont"), 100, 150, RAYWHITE)
+
+        # Render buttons
+        for key, button in self.buttons.items():
+            button.render()
+            if button.is_clicked():
+                match key:
+                    case "NEXT":
+                        try:
+                            column_count = int(self.column_box.text)
+                            row_count = int(self.row_box.text)
+
+                            # Ensure it's a square matrix
+                            if column_count == row_count and column_count > 0:
+                                self.matrix_size = column_count
+                                self.generate_matrix_boxes()
+                                return True  # Transition to matrix input
+                            else:
+                                log(TraceLogLevel.LOG_WARNING, "Matrix must be square and non-zero!")
+                        except ValueError:
+                            log(TraceLogLevel.LOG_WARNING, "Invalid matrix size input!")
+        return False
+
+    def update(self) -> str:
+        """Main update loop."""
+        if self.matrix_size == 0:  # Determine matrix size
+            if self.update_matrix_size():
+                log(TraceLogLevel.LOG_INFO, "Matrix size input completed.")
+        else:  # Collect matrix content
+            self.handle_camera_input()
+
+            # Begin Camera2D mode
+            begin_mode_2d(self.camera)
+            self.render_matrix_boxes()
+            end_mode_2d()
 
         return "calculator"
 
@@ -702,7 +825,7 @@ class MainMenu:
 
     def update(self) -> str:
 
-        draw_rectangle_gradient_v(0, 0, get_screen_width(), get_screen_height(), GRAY, LIGHTGRAY)
+        draw_rectangle_gradient_v(0, 0, APP_WIDTH, APP_HEIGHT, GRAY, LIGHTGRAY)
 
         self.animate_title()
 
@@ -719,6 +842,7 @@ class MainMenu:
                         
                     case "MATRIX":
                         log(TraceLogLevel.LOG_INFO, "Matrix button clicked")
+                        return "calculator"
                         
                     case _:
                         print(f"Unknown button '{key}' clicked.")
@@ -746,6 +870,7 @@ class Application():
         set_config_flags(ConfigFlags.FLAG_WINDOW_RESIZABLE | ConfigFlags.FLAG_VSYNC_HINT)
         init_window(self.window_width, self.window_height, "Circuit Calculator")
         set_target_fps(60)
+        set_exit_key(KeyboardKey.KEY_NULL)
 
         load_resources()
 
@@ -771,7 +896,7 @@ class Application():
             "main_menu": self.main_menu.update,
         }
 
-        self.app_state = "calculator"
+        self.app_state = "main_menu"
 
 
     def __call__(self):
@@ -810,6 +935,9 @@ class Application():
             # BOOM GUMANA SPAGHETTI CODE 101% WORKING
             if self.app_state in self.states.keys():
                 self.app_state = self.states[self.app_state]()
+
+            if is_key_pressed(KeyboardKey.KEY_ESCAPE):
+                self.app_state = "main_menu"
                         
             end_texture_mode()
  
