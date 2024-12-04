@@ -1,5 +1,6 @@
 from pyray import *
 import threading
+from fractions import Fraction
 
 
 # ONE BACKSPACE     - FLOW
@@ -562,9 +563,38 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
             while key > 0:  # Process each key press
                 if key == KeyboardKey.KEY_BACKSPACE and len(self.text) > 0:
                     self.text = self.text[:-1]
-                elif key >= 48 and key <= 57:  # Only allow numeric input (keys 0-9)
+                elif key == KeyboardKey.KEY_MINUS:  # Allow the '-' character for negative numbers
+                    self.text += "-"
+                elif key == KeyboardKey.KEY_SLASH:  # Allow the '/' character for fractions
+                    self.text += "/"
+                elif key == KeyboardKey.KEY_PERIOD:  # Allow the '.' character for floats
+                    self.text += "."
+                elif 48 <= key <= 57:  # Allow numeric input (keys 0-9)
                     self.text += chr(key)
                 key = get_key_pressed()
+
+    def validate_input(self):
+        """
+        Validate the text as either a valid fraction or float.
+        Returns True if valid, False otherwise.
+        """
+        if not self.text:
+            return False
+        try:
+            # Try to parse as a fraction or float
+            float(Fraction(self.text))
+            return True
+        except ValueError:
+            return False
+
+    def get_value(self):
+        """
+        Return the numeric value of the input as a float.
+        If the input is invalid, raise a ValueError.
+        """
+        if not self.validate_input():
+            raise ValueError(f"Invalid input: '{self.text}'")
+        return float(Fraction(self.text))
 
     def fit_text_size(self) -> int:
         """Adjust font size to fit the text inside the rectangle."""
@@ -604,6 +634,7 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
 
 
 class Calculator:
+
     def __init__(self):
         # Message boxes for matrix size input
         self.column_box = MessageBox(Rectangle(200, 125, 150, 150), RM.get("mainfont"))
@@ -629,6 +660,26 @@ class Calculator:
         self.is_panning = False
         self.last_mouse_position = Vector2(0, 0)
 
+
+    def collect_matrix_input(self):
+        """Collect matrix input from the message boxes and format it for computation."""
+        matrix = []
+        try:
+            for row_boxes in self.matrix_boxes:
+                row = []
+                for box in row_boxes:
+                    row.append(box.get_value())  # Use get_value to handle fractions and floats
+                matrix.append(row)
+
+            # Ensure augmented matrix size (n x n+1)
+            if len(matrix) != self.matrix_size or any(len(row) != self.matrix_size + 1 for row in matrix):
+                raise ValueError("Invalid matrix size! Ensure it's n x n+1.")
+
+            return matrix
+        except ValueError as e:
+            log(TraceLogLevel.LOG_WARNING, f"Input Error: {str(e)}")
+            return None
+
     def generate_matrix_boxes(self):
         """Generate a grid of message boxes for matrix input based on matrix size."""
         self.matrix_boxes.clear()  # Clear any existing matrix boxes
@@ -638,19 +689,20 @@ class Calculator:
         padding = 5  # Space between cells
 
         # Calculate starting position for the grid
-        grid_width = self.matrix_size * (cell_size + padding) - padding
+        grid_width = (self.matrix_size + 1) * (cell_size + padding) - padding  # Include the extra column
         grid_height = self.matrix_size * (cell_size + padding) - padding
         start_x = (APP_WIDTH - grid_width) // 2
         start_y = (APP_HEIGHT - grid_height) // 2
 
         for i in range(self.matrix_size):
             row_boxes = []
-            for j in range(self.matrix_size):
+            for j in range(self.matrix_size + 1):  # Add the extra column for augmented matrix
                 x = start_x + j * (cell_size + padding)
                 y = start_y + i * (cell_size + padding)
                 rect = Rectangle(x, y, cell_size, cell_size)
-                row_boxes.append(MessageBox(rect, RM.get("mainfont"), base_font_size=20, min_font_size=10))
+                row_boxes.append(MessageBox(rect, RM.get("mainfont"), base_font_size=30, min_font_size=10))
             self.matrix_boxes.append(row_boxes)
+
 
     def render_matrix_boxes(self):
         """Render all matrix message boxes and handle their interactions."""
@@ -748,8 +800,17 @@ class Calculator:
             self.render_matrix_boxes()
             end_mode_2d()
 
-        return "calculator"
+            # Check if Enter key is pressed to print the matrix
+            if is_key_pressed(KeyboardKey.KEY_ENTER):
+                matrix = self.collect_matrix_input()
+                if matrix:
+                    log(TraceLogLevel.LOG_INFO, "Matrix input collected successfully:")
+                    for row in matrix:
+                        print(row)  # Print each row of the matrix to the console
+                else:
+                    log(TraceLogLevel.LOG_WARNING, "Failed to collect matrix input!")
 
+        return "calculator"
 
 
 
