@@ -907,29 +907,35 @@ class Calculator:
 
         # Bracket dimensions
         bracket_thickness = 5
-        bracket_offset = 25  # Gap between the brackets and the matrix
+        bracket_offset_left = 25  # Gap between the brackets and the matrix
+        bracket_offset_right = 40  # Vertical offset for the brackets
 
         # Left bracket
         left_bracket_rects = [
-            Rectangle(matrix_x - bracket_offset - bracket_thickness, matrix_y, bracket_thickness, matrix_height),  # Vertical line
-            Rectangle(matrix_x - bracket_offset, matrix_y, cell_width // 4, bracket_thickness),  # Top horizontal line
-            Rectangle(matrix_x - bracket_offset, matrix_y + matrix_height - bracket_thickness, cell_width // 4, bracket_thickness),  # Bottom horizontal line
+            Rectangle(matrix_x - bracket_offset_left - bracket_thickness, matrix_y, bracket_thickness, matrix_height),  # Vertical line
+            Rectangle(matrix_x - bracket_offset_left, matrix_y, cell_width // 4, bracket_thickness),  # Top horizontal line
+            Rectangle(matrix_x - bracket_offset_left, matrix_y + matrix_height - bracket_thickness, cell_width // 4, bracket_thickness),  # Bottom horizontal line
         ]
 
         # Right bracket
         right_bracket_rects = [
-            Rectangle(matrix_x + matrix_width + bracket_offset, matrix_y, bracket_thickness, matrix_height),  # Vertical line
-            Rectangle(matrix_x + matrix_width + bracket_offset - cell_width // 4, matrix_y, cell_width // 4, bracket_thickness),  # Top horizontal line
-            Rectangle(matrix_x + matrix_width + bracket_offset - cell_width // 4, matrix_y + matrix_height - bracket_thickness, cell_width // 4, bracket_thickness),  # Bottom horizontal line
+            Rectangle(matrix_x + matrix_width + bracket_offset_right, matrix_y, bracket_thickness, matrix_height),  # Vertical line
+            Rectangle(matrix_x + matrix_width + bracket_offset_right - cell_width // 4, matrix_y, cell_width // 4, bracket_thickness),  # Top horizontal line
+            Rectangle(matrix_x + matrix_width + bracket_offset_right - cell_width // 4, matrix_y + matrix_height - bracket_thickness, cell_width // 4, bracket_thickness),  # Bottom horizontal line
         ]
 
         # Draw brackets
         for rect in left_bracket_rects + right_bracket_rects:
             draw_rectangle_rec(rect, WHITE)
 
+        LAST_CELL_GAP = 15  # Gap between the matrix and the buttons
         # Render matrix message boxes
         for row_idx, row in enumerate(self.matrix_boxes):
             for col_idx, box in enumerate(row):
+                # Calculate the adjusted position for the last column
+                if col_idx == len(row) - 1:  # Last column
+                    box.rect.x += LAST_CELL_GAP  # Add an extra gap before the last column
+
                 # Translate the mouse position to the world position
                 mouse_pos_world = get_screen_to_world_2d(get_mouse_position(), self.camera)
 
@@ -950,6 +956,9 @@ class Calculator:
                     separator_y = box.rect.y + box.rect.height / 2
                     draw_text_ex(RM.get("mainfont"), ":", Vector2(separator_x, separator_y - 10), 20, 0, WHITE)
 
+            # Reset the position of the last column after rendering to avoid permanent shifts
+            if len(row) > 0:
+                row[-1].rect.x -= LAST_CELL_GAP  # Restore original position
 
 
 
