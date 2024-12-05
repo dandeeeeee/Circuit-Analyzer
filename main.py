@@ -141,7 +141,7 @@ class Button:
         x = self.rectangle.x + (self.rectangle.width - text_width) / 2
         y = self.rectangle.y + (self.rectangle.height - text_height) / 2
 
-        draw_text_ex(self.font, text, Vector2(x, y), font_size, 0, DARKGRAY if not self.is_hovered() else WHITE)
+        draw_text_ex(self.font, text, Vector2(x, y), font_size, 0, DARKGRAY if not self.is_hovered() else RAYWHITE)
 
 
     def is_hovered(self) -> bool:
@@ -704,7 +704,8 @@ def draw_centered_text_ex(text, font, font_size, y_position, color=RAYWHITE):
 
 class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
 
-    def __init__(self, rect: Rectangle, font, base_font_size=80, min_font_size=10, roundness=0.25):
+    def __init__(self, rect: Rectangle, font, base_font_size=80, min_font_size=10, roundness=0.25, background_color=GRAY, hovered_color=LIGHTGRAY, text_color=RAYWHITE):
+        
         self.rect = rect
         self.font = font
         self.text = ""
@@ -712,6 +713,10 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
         self.base_font_size = base_font_size
         self.min_font_size = min_font_size
         self.roundness = roundness  # Roundness of the rectangle edges (0.0 to 1.0)
+        self.backrgound_color = background_color
+        self.hovered_color = hovered_color
+        self.text_color = text_color
+
 
     def handle_input(self):
         """Handle keyboard input when the message box is focused."""
@@ -730,6 +735,7 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
                     self.text += chr(key)
                 key = get_key_pressed()
 
+
     def validate_input(self):
         """
         Validate the text as either a valid fraction or float.
@@ -744,6 +750,7 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
         except ValueError:
             return False
 
+
     def get_value(self):
         """
         Return the numeric value of the input as a float.
@@ -752,6 +759,7 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
         if not self.validate_input():
             raise ValueError(f"Invalid input: '{self.text}'")
         return float(Fraction(self.text))
+
 
     def fit_text_size(self) -> int:
         """Adjust font size to fit the text inside the rectangle."""
@@ -764,10 +772,11 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
 
         return font_size
 
+
     def render(self):
         """Render the message box with its current text."""
         # Draw the rounded rectangle
-        draw_rectangle_rounded(self.rect, self.roundness, 10, GRAY if not self.is_focused else LIGHTGRAY)
+        draw_rectangle_rounded(self.rect, self.roundness, 10, self.backrgound_color if not self.is_focused else self.hovered_color)
 
         # Calculate text position and size
         font_size = self.fit_text_size()
@@ -777,7 +786,8 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
         text_y = self.rect.y + (self.rect.height - text_height) / 2
 
         # Draw the text
-        draw_text_ex(self.font, self.text, Vector2(text_x, text_y), font_size, 0, RAYWHITE)
+        draw_text_ex(self.font, self.text, Vector2(text_x, text_y), font_size, 0, self.text_color)
+
 
     def check_focus(self):
         """Check if the message box is clicked and toggle focus."""
@@ -787,6 +797,13 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
                 self.is_focused = True
             else:
                 self.is_focused = False
+
+
+    def set_color(self, background_color=GRAY, hovered_color=LIGHTGRAY, text_color=RAYWHITE):
+        """Set the colors for the message box."""
+        self.backrgound_color = background_color
+        self.hovered_color = hovered_color
+        self.text_color = text_color
 
 
 
@@ -926,7 +943,7 @@ class Calculator:
 
         # Draw brackets
         for rect in left_bracket_rects + right_bracket_rects:
-            draw_rectangle_rec(rect, WHITE)
+            draw_rectangle_rec(rect, RAYWHITE)
 
         LAST_CELL_GAP = 15  # Gap between the matrix and the buttons
         # Render matrix message boxes
@@ -934,6 +951,7 @@ class Calculator:
             for col_idx, box in enumerate(row):
                 # Calculate the adjusted position for the last column
                 if col_idx == len(row) - 1:  # Last column
+                    box.set_color(text_color=GOLDEN_YELLOW)
                     box.rect.x += LAST_CELL_GAP  # Add an extra gap before the last column
 
                 # Translate the mouse position to the world position
