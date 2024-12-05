@@ -787,6 +787,91 @@ class Calculator:
                             log(TraceLogLevel.LOG_WARNING, "Invalid matrix size input!")
         return False
 
+
+
+
+    # (Other methods and initializations remain unchanged)
+
+    def gaussian_elimination(self, matrix):
+        """
+        Perform Gaussian elimination step-by-step and log the process.
+        The input matrix is modified in place to transform it to row-echelon form.
+        """
+        n = len(matrix)
+        log(TraceLogLevel.LOG_INFO, "Starting Gaussian elimination...")
+
+        for i in range(n):
+            # Step 1: Find the pivot element
+            pivot = matrix[i][i]
+            if pivot == 0:
+                log(TraceLogLevel.LOG_WARNING, f"Zero pivot encountered at row {i}.")
+                # Swap with a non-zero row if possible
+                for k in range(i + 1, n):
+                    if matrix[k][i] != 0:
+                        matrix[i], matrix[k] = matrix[k], matrix[i]
+                        log(TraceLogLevel.LOG_INFO, f"Swapped row {i} with row {k}.")
+                        pivot = matrix[i][i]
+                        break
+                else:
+                    raise ValueError("Matrix is singular and cannot be solved.")
+
+            # Step 2: Normalize the pivot row
+            for j in range(i, n + 1):
+                matrix[i][j] /= pivot
+            log(TraceLogLevel.LOG_INFO, f"Normalized row {i}: {matrix[i]}")
+
+            # Step 3: Eliminate below the pivot
+            for k in range(i + 1, n):
+                factor = matrix[k][i]
+                for j in range(i, n + 1):
+                    matrix[k][j] -= factor * matrix[i][j]
+                log(TraceLogLevel.LOG_INFO, f"Eliminated row {k} using row {i}: {matrix[k]}")
+
+        log(TraceLogLevel.LOG_INFO, "Gaussian elimination complete.")
+        return matrix
+
+    def back_substitution(self, matrix):
+        """
+        Perform back substitution on a row-echelon matrix to find the solution.
+        """
+        n = len(matrix)
+        solution = [0] * n
+
+        for i in range(n - 1, -1, -1):
+            solution[i] = matrix[i][n]
+            for j in range(i + 1, n):
+                solution[i] -= matrix[i][j] * solution[j]
+            solution[i] /= matrix[i][i]
+            log(TraceLogLevel.LOG_INFO, f"Back substitution at row {i}: x[{i}] = {solution[i]}")
+
+        return solution
+
+    def solve_matrix(self):
+        """
+        Collect the matrix, perform Gaussian elimination, and display the solution step by step.
+        """
+        matrix = self.collect_matrix_input()
+        if not matrix:
+            log(TraceLogLevel.LOG_WARNING, "Matrix input is invalid.")
+            return
+
+        try:
+            # Perform Gaussian elimination
+            log(TraceLogLevel.LOG_INFO, "Performing Gaussian elimination...")
+            self.gaussian_elimination(matrix)
+
+            # Perform back substitution
+            log(TraceLogLevel.LOG_INFO, "Performing back substitution...")
+            solution = self.back_substitution(matrix)
+
+            # Display solution
+            log(TraceLogLevel.LOG_INFO, "Solution obtained:")
+            for i, x in enumerate(solution):
+                print(f"x[{i}] = {x}")
+
+        except ValueError as e:
+            log(TraceLogLevel.LOG_WARNING, f"Error during solving: {e}")
+
     def update(self) -> str:
         """Main update loop."""
         if self.matrix_size == 0:  # Determine matrix size
@@ -800,17 +885,12 @@ class Calculator:
             self.render_matrix_boxes()
             end_mode_2d()
 
-            # Check if Enter key is pressed to print the matrix
+            # Check if Enter key is pressed to solve the matrix
             if is_key_pressed(KeyboardKey.KEY_ENTER):
-                matrix = self.collect_matrix_input()
-                if matrix:
-                    log(TraceLogLevel.LOG_INFO, "Matrix input collected successfully:")
-                    for row in matrix:
-                        print(row)  # Print each row of the matrix to the console
-                else:
-                    log(TraceLogLevel.LOG_WARNING, "Failed to collect matrix input!")
+                self.solve_matrix()
 
         return "calculator"
+
 
 
 
