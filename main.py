@@ -16,6 +16,9 @@ global RM
 APP_WIDTH = 800
 APP_HEIGHT = 450
 
+MATTE_BLACK = Color(51, 51, 51, 255)
+GOLDEN_YELLOW = Color(255, 223, 0, 255)
+
 TEXTURE = 0
 IMAGE = 1
 FONT = 2
@@ -533,6 +536,160 @@ class Canvas:
 
 
 
+class Builder:
+
+
+    def __init__(self):
+
+        # grid settings
+        self.grid_size = 50 
+        self.sub_grid_divisions = 5 
+        self.zoom_level = 1.0  
+        self.min_zoom = 0.2  
+        self.max_zoom = 3.0  
+        self.offset = Vector2(0, 0) 
+
+        # buttons
+        self.buttons = {}
+        self.buttons["MENU"] = Button(Rectangle(5, 5, 25, 20), GRAY)
+        self.menu_open = False
+        self.menu_horizontal_position = -300 # flag for menu position
+
+
+    def update(self) -> str:
+
+        zoom_increment = 0.1
+        mouse_wheel_move = get_mouse_wheel_move()
+        if mouse_wheel_move != 0:
+            prev_zoom = self.zoom_level
+            self.zoom_level += zoom_increment * mouse_wheel_move
+            self.zoom_level = clamp(self.zoom_level, self.min_zoom, self.max_zoom)
+
+
+            mouse_pos = get_mouse_position()
+            zoom_factor = self.zoom_level / prev_zoom
+            self.offset.x = mouse_pos.x - (mouse_pos.x - self.offset.x) * zoom_factor
+            self.offset.y = mouse_pos.y - (mouse_pos.y - self.offset.y) * zoom_factor
+
+
+        if is_mouse_button_down(MouseButton.MOUSE_BUTTON_MIDDLE):
+            mouse_delta = get_mouse_delta()
+            self.offset.x += mouse_delta.x
+            self.offset.y += mouse_delta.y
+
+        #DRAW
+        screen_width = APP_WIDTH
+        screen_height = APP_HEIGHT
+
+        start_x = -self.offset.x / (self.grid_size * self.zoom_level)
+        end_x = (screen_width - self.offset.x) / (self.grid_size * self.zoom_level)
+        start_y = -self.offset.y / (self.grid_size * self.zoom_level)
+        end_y = (screen_height - self.offset.y) / (self.grid_size * self.zoom_level)
+
+        for x in range(int(start_x), int(end_x) + 1):
+            draw_line(
+                int(x * self.grid_size * self.zoom_level + self.offset.x),
+                0,
+                int(x * self.grid_size * self.zoom_level + self.offset.x),
+                screen_height,
+                GRAY
+            )
+        for y in range(int(start_y), int(end_y) + 1):
+            draw_line(
+                0,
+                int(y * self.grid_size * self.zoom_level + self.offset.y),
+                screen_width,
+                int(y * self.grid_size * self.zoom_level + self.offset.y),
+                GRAY
+            )
+
+        if self.zoom_level > 2.0:
+            sub_grid_size = self.grid_size / self.sub_grid_divisions
+            for x in range(int(start_x * self.sub_grid_divisions), int(end_x * self.sub_grid_divisions) + 1):
+                draw_line(
+                    int(x * sub_grid_size * self.zoom_level + self.offset.x),
+                    0,
+                    int(x * sub_grid_size * self.zoom_level + self.offset.x),
+                    screen_height,
+                    GRAY
+                )
+            for y in range(int(start_y * self.sub_grid_divisions), int(end_y * self.sub_grid_divisions) + 1):
+                draw_line(
+                    0,
+                    int(y * sub_grid_size * self.zoom_level + self.offset.y),
+                    screen_width,
+                    int(y * sub_grid_size * self.zoom_level + self.offset.y),
+                    GRAY
+                )
+
+        draw_rectangle(200, 200, 100, 100, WHITE)
+
+        
+        self.toggle_menu()
+
+        for key, button in self.buttons.items():
+            button.render()
+            if button.is_clicked():
+                match key:
+                    case "MENU":
+                        if self.menu_open:
+                            self.menu_open = False
+                            self.buttons["MENU"].set_color(GRAY)
+                        else:
+                            self.menu_open = True
+                            self.buttons["MENU"].set_color(DARKGRAY)
+
+                    case "EXIT":
+                        log(TraceLogLevel.LOG_INFO, "Exiting application")
+                        close_window()
+                    case _:
+                        print(f"Unknown button '{key}' clicked.")
+
+        return "builder"
+
+
+    def toggle_menu(self):
+
+        SLIDING_ANIMATION_SPEED = 1500
+        MENU_INITIAL_POSITION = -300
+        
+        if self.menu_open:
+            if self.menu_horizontal_position <= 0:
+                self.menu_horizontal_position += int(SLIDING_ANIMATION_SPEED * get_frame_time())
+                if self.menu_horizontal_position > 0:
+                    self.menu_horizontal_position = 0
+            draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
+
+        else:
+            if self.menu_horizontal_position >= MENU_INITIAL_POSITION:
+                self.menu_horizontal_position -= int(SLIDING_ANIMATION_SPEED * get_frame_time())
+                if self.menu_horizontal_position < MENU_INITIAL_POSITION:
+                    self.menu_horizontal_position = MENU_INITIAL_POSITION
+            draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
+
+    
+
+    def toggle_menu(self):
+
+        SLIDING_ANIMATION_SPEED = 1500
+        MENU_INITIAL_POSITION = -300
+        
+        if self.menu_open:
+            if self.menu_horizontal_position <= 0:
+                self.menu_horizontal_position += int(SLIDING_ANIMATION_SPEED * get_frame_time())
+                if self.menu_horizontal_position > 0:
+                    self.menu_horizontal_position = 0
+            draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
+
+        else:
+            if self.menu_horizontal_position >= MENU_INITIAL_POSITION:
+                self.menu_horizontal_position -= int(SLIDING_ANIMATION_SPEED * get_frame_time())
+                if self.menu_horizontal_position < MENU_INITIAL_POSITION:
+                    self.menu_horizontal_position = MENU_INITIAL_POSITION
+            draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
+
+
+
 def draw_centered_text_ex(text, font, font_size, y_position, color=RAYWHITE):
     # Measure the width of the text with the specified font and font size
     text_width = measure_text_ex(font, text, font_size, 1).x
@@ -633,6 +790,28 @@ class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
 
 
 
+class Notifier:
+
+
+    def __init__(self, message: str, rec=Rectangle(100, 50, APP_WIDTH - 200, APP_HEIGHT - 100)):
+
+        self.font = RM.get("mainfont")
+        self.message = message
+        self.rectangle = rec
+        self.button = {}
+        self.button["OK"] = Button(Rectangle(325, 340, 150, 50), GRAY, text="CONTINUE", font_size=25)
+
+    
+    def render(self):
+
+        # draw_rectangle_rec(Rectangle(100, 50, APP_WIDTH - 200, APP_HEIGHT - 100), GRAY)
+        draw_rectangle_rounded(self.rectangle, 0.08, 10, GRAY)
+        draw_centered_text_ex(self.message, self.font, 30, 150, RAYWHITE)
+        self.button["OK"].render()
+
+
+
+
 class Calculator:
 
     def __init__(self):
@@ -642,7 +821,8 @@ class Calculator:
 
         # Buttons
         self.buttons = {
-            "NEXT": Button(Rectangle(325, 350, 150, 50), GRAY, text="NEXT")
+            "NEXT": Button(Rectangle(325, 350, 150, 50), GRAY, text="NEXT"),
+            "SOLVE": Button(Rectangle(325, 350, 150, 50), GRAY, text="SOLVE")
         }
 
         # Matrix message boxes
@@ -676,9 +856,11 @@ class Calculator:
                 raise ValueError("Invalid matrix size! Ensure it's n x n+1.")
 
             return matrix
+
         except ValueError as e:
             log(TraceLogLevel.LOG_WARNING, f"Input Error: {str(e)}")
             return None
+
 
     def generate_matrix_boxes(self):
         """Generate a grid of message boxes for matrix input based on matrix size."""
@@ -706,8 +888,48 @@ class Calculator:
 
     def render_matrix_boxes(self):
         """Render all matrix message boxes and handle their interactions."""
-        for row in self.matrix_boxes:
-            for box in row:
+        # Dimensions and position calculations
+        if not self.matrix_boxes:
+            return
+
+        # Determine overall matrix dimensions
+        num_rows = len(self.matrix_boxes)
+        num_cols = len(self.matrix_boxes[0])
+        cell_width = self.matrix_boxes[0][0].rect.width
+        cell_height = self.matrix_boxes[0][0].rect.height
+        padding = 5
+
+        # Calculate the bounds of the matrix grid
+        matrix_x = self.matrix_boxes[0][0].rect.x
+        matrix_y = self.matrix_boxes[0][0].rect.y
+        matrix_width = num_cols * (cell_width + padding) - padding
+        matrix_height = num_rows * (cell_height + padding) - padding
+
+        # Bracket dimensions
+        bracket_thickness = 5
+        bracket_offset = 25  # Gap between the brackets and the matrix
+
+        # Left bracket
+        left_bracket_rects = [
+            Rectangle(matrix_x - bracket_offset - bracket_thickness, matrix_y, bracket_thickness, matrix_height),  # Vertical line
+            Rectangle(matrix_x - bracket_offset, matrix_y, cell_width // 4, bracket_thickness),  # Top horizontal line
+            Rectangle(matrix_x - bracket_offset, matrix_y + matrix_height - bracket_thickness, cell_width // 4, bracket_thickness),  # Bottom horizontal line
+        ]
+
+        # Right bracket
+        right_bracket_rects = [
+            Rectangle(matrix_x + matrix_width + bracket_offset, matrix_y, bracket_thickness, matrix_height),  # Vertical line
+            Rectangle(matrix_x + matrix_width + bracket_offset - cell_width // 4, matrix_y, cell_width // 4, bracket_thickness),  # Top horizontal line
+            Rectangle(matrix_x + matrix_width + bracket_offset - cell_width // 4, matrix_y + matrix_height - bracket_thickness, cell_width // 4, bracket_thickness),  # Bottom horizontal line
+        ]
+
+        # Draw brackets
+        for rect in left_bracket_rects + right_bracket_rects:
+            draw_rectangle_rec(rect, WHITE)
+
+        # Render matrix message boxes
+        for row_idx, row in enumerate(self.matrix_boxes):
+            for col_idx, box in enumerate(row):
                 # Translate the mouse position to the world position
                 mouse_pos_world = get_screen_to_world_2d(get_mouse_position(), self.camera)
 
@@ -721,6 +943,15 @@ class Calculator:
                 # Handle input and render the box
                 box.handle_input()
                 box.render()
+
+                # Add a separator before the last column
+                if col_idx == len(row) - 2:  # Second-to-last column
+                    separator_x = box.rect.x + box.rect.width + 5
+                    separator_y = box.rect.y + box.rect.height / 2
+                    draw_text_ex(RM.get("mainfont"), ":", Vector2(separator_x, separator_y - 10), 20, 0, WHITE)
+
+
+
 
     def handle_camera_input(self):
         """Handle Camera2D input for zooming and panning."""
@@ -748,6 +979,7 @@ class Calculator:
             else:
                 self.is_panning = False
 
+
     def update_matrix_size(self) -> bool:
         """Handle matrix size input and transition to matrix content input."""
         # Draw title
@@ -767,31 +999,26 @@ class Calculator:
         draw_centered_text_ex("X", RM.get("mainfont"), 100, 150, RAYWHITE)
 
         # Render buttons
-        for key, button in self.buttons.items():
-            button.render()
-            if button.is_clicked():
-                match key:
-                    case "NEXT":
-                        try:
-                            column_count = int(self.column_box.text)
-                            row_count = int(self.row_box.text)
+        self.buttons["NEXT"].render()
+        if self.buttons["NEXT"].is_clicked():
+            try:
+                column_count = int(self.column_box.text)
+                row_count = int(self.row_box.text)
 
-                            # Ensure it's a square matrix
-                            if column_count == row_count and column_count > 0:
-                                self.matrix_size = column_count
-                                self.generate_matrix_boxes()
-                                return True  # Transition to matrix input
-                            else:
-                                log(TraceLogLevel.LOG_WARNING, "Matrix must be square and non-zero!")
-                        except ValueError:
-                            log(TraceLogLevel.LOG_WARNING, "Invalid matrix size input!")
+                # Ensure it's a square matrix
+                if column_count == row_count and column_count > 0:
+                    self.matrix_size = column_count
+                    self.generate_matrix_boxes()
+                    return True  # Transition to matrix input
+                else:
+                    log(TraceLogLevel.LOG_WARNING, "Matrix must be square and non-zero!")
+
+            except ValueError:
+                log(TraceLogLevel.LOG_WARNING, "Invalid matrix size input!")
+        
         return False
 
-
-
-
     # (Other methods and initializations remain unchanged)
-
     def gaussian_elimination(self, matrix):
         """
         Perform Gaussian elimination step-by-step and log the process.
@@ -829,6 +1056,7 @@ class Calculator:
 
         log(TraceLogLevel.LOG_INFO, "Gaussian elimination complete.")
         return matrix
+
 
     def back_substitution(self, matrix):
         """
@@ -893,7 +1121,6 @@ class Calculator:
 
 
 
-
 class MainMenu:
 
     def __init__(self):
@@ -907,7 +1134,7 @@ class MainMenu:
         self.position = Vector2(30, 10)
         self.font_size = 80
         self.spacing = 0
-        self.text_color = RAYWHITE
+        self.text_color = GOLDEN_YELLOW
         self.displayed_text = ""
         self.char_index = 0
         self.cursor_visible = True
@@ -918,9 +1145,9 @@ class MainMenu:
         self.is_typing = True  # True if typing, False if erasing
 
         self.buttons = {}
-        self.buttons["FREEHAND"] = Button(Rectangle(30, 100, 400, 150), GRAY)
-        self.buttons["BUILDER"] = Button(Rectangle(30, 275, 400, 150), GRAY)
-        self.buttons["MATRIX"] = Button(Rectangle(450, 100, 310, 325), GRAY)
+        self.buttons["FREEHAND"] = Button(Rectangle(30, 100, 400, 150), DARKGRAY)
+        self.buttons["BUILDER"] = Button(Rectangle(30, 275, 400, 150), DARKGRAY)
+        self.buttons["MATRIX"] = Button(Rectangle(450, 100, 310, 325), DARKGRAY)
 
 
     def animate_title(self):
@@ -961,12 +1188,13 @@ class MainMenu:
             cursor_y = self.position.y + self.font_size * 0.12
             cursor_width = 25
             cursor_height = int(self.font_size * 0.7)
-            draw_rectangle(int(cursor_x), int(cursor_y), int(cursor_width), int(cursor_height), fade(self.text_color, 0.9))
+            draw_rectangle(int(cursor_x), int(cursor_y), int(cursor_width), int(cursor_height), fade(RAYWHITE, 0.9))
 
 
     def update(self) -> str:
 
-        draw_rectangle_gradient_v(0, 0, APP_WIDTH, APP_HEIGHT, GRAY, LIGHTGRAY)
+        # draw_rectangle_gradient_v(0, 0, APP_WIDTH, APP_HEIGHT, GRAY, LIGHTGRAY)
+        draw_rectangle(0, 0, APP_WIDTH, APP_HEIGHT, MATTE_BLACK) 
 
         self.animate_title()
 
@@ -980,6 +1208,7 @@ class MainMenu:
 
                     case "BUILDER":
                         log(TraceLogLevel.LOG_INFO, "Builder button clicked")
+                        return "builder"
                         
                     case "MATRIX":
                         log(TraceLogLevel.LOG_INFO, "Matrix button clicked")
@@ -1028,16 +1257,21 @@ class Application():
         1.0)                                           # zoom
 
         self.canvas = Canvas()
+        self.builder = Builder()
         self.calculator = Calculator()
         self.main_menu = MainMenu()
 
         self.states = {
             "canvas": self.canvas.update,
+            "builder": self.builder.update,
             "calculator": self.calculator.update,
             "main_menu": self.main_menu.update,
         }
 
         self.app_state = "main_menu"
+
+
+        self.test = Notifier("Hello World")
 
 
     def __call__(self):
@@ -1079,6 +1313,8 @@ class Application():
 
             if is_key_pressed(KeyboardKey.KEY_ESCAPE):
                 self.app_state = "main_menu"
+
+            # self.test.render()
                         
             end_texture_mode()
  
