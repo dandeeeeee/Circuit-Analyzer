@@ -1,4 +1,4 @@
-"""
+
 import pyray as rl
 import tkinter as tk
 from tkinter import colorchooser
@@ -49,4 +49,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-"""

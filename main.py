@@ -77,6 +77,7 @@ class TraceLog:
 
 
 class ResourceManager:
+
     _instance = None
     _lock = threading.Lock()
 
@@ -335,133 +336,122 @@ class Terminal(Component):
 
 class Canvas:
 
+    
     def __init__(self):
 
-        # grid settings
-        self.grid_size = 50 
-        self.sub_grid_divisions = 5 
-        self.zoom_level = 1.0  
-        self.min_zoom = 0.2  
-        self.max_zoom = 3.0  
-        self.offset = Vector2(0, 0) 
+        self.buttons = {
+            "PENCIL": Button(Rectangle((APP_WIDTH / 2) - 50, APP_HEIGHT - 125, 100, 100), WHITE, text="PENCIL", font_size=20),
+        }
+        self.on_hand = None  # Active tool (e.g., Pencil)
 
-        # buttons
-        self.buttons = {}
-        self.buttons["MENU"] = Button(Rectangle(5, 5, 25, 20), GRAY)
-        self.menu_open = False
-        self.menu_horizontal_position = -300 # flag for menu position
+        # Camera2D setup for grid panning and zooming
+        self.camera = Camera2D(
+            Vector2(APP_WIDTH / 2, APP_HEIGHT / 2),  # target
+            Vector2(APP_WIDTH / 2, APP_HEIGHT / 2),  # offset
+            0,                                       # rotation
+            1.0                                      # zoom
+        )
 
-    def update(self) -> str:
+        # Mouse panning state
+        self.is_panning = False
+        self.last_mouse_position = Vector2(0, 0)
 
-        zoom_increment = 0.1
-        mouse_wheel_move = get_mouse_wheel_move()
-        if mouse_wheel_move != 0:
-            prev_zoom = self.zoom_level
-            self.zoom_level += zoom_increment * mouse_wheel_move
-            self.zoom_level = clamp(self.zoom_level, self.min_zoom, self.max_zoom)
+    def handle_camera_input(self):
+        """Handle Camera2D input for zooming and panning."""
+        # Zoom with the mouse wheel
+        mouse_wheel = get_mouse_wheel_move()
+        if mouse_wheel != 0:
+            self.camera.zoom += mouse_wheel * 0.25  # Adjust zoom speed
+            self.camera.zoom = max(0.1, min(self.camera.zoom, 10.0))  # Clamp zoom level
 
+        # Pan with middle mouse button
+        if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_MIDDLE):
+            self.is_panning = True
+            self.last_mouse_position = get_mouse_position()
 
-            mouse_pos = get_mouse_position()
-            zoom_factor = self.zoom_level / prev_zoom
-            self.offset.x = mouse_pos.x - (mouse_pos.x - self.offset.x) * zoom_factor
-            self.offset.y = mouse_pos.y - (mouse_pos.y - self.offset.y) * zoom_factor
-
-
-        if is_mouse_button_down(MouseButton.MOUSE_BUTTON_MIDDLE):
-            mouse_delta = get_mouse_delta()
-            self.offset.x += mouse_delta.x
-            self.offset.y += mouse_delta.y
-
-        #DRAW
-        screen_width = APP_WIDTH
-        screen_height = APP_HEIGHT
-
-        start_x = -self.offset.x / (self.grid_size * self.zoom_level)
-        end_x = (screen_width - self.offset.x) / (self.grid_size * self.zoom_level)
-        start_y = -self.offset.y / (self.grid_size * self.zoom_level)
-        end_y = (screen_height - self.offset.y) / (self.grid_size * self.zoom_level)
-
-        for x in range(int(start_x), int(end_x) + 1):
-            draw_line(
-                int(x * self.grid_size * self.zoom_level + self.offset.x),
-                0,
-                int(x * self.grid_size * self.zoom_level + self.offset.x),
-                screen_height,
-                GRAY
-            )
-        for y in range(int(start_y), int(end_y) + 1):
-            draw_line(
-                0,
-                int(y * self.grid_size * self.zoom_level + self.offset.y),
-                screen_width,
-                int(y * self.grid_size * self.zoom_level + self.offset.y),
-                GRAY
-            )
-
-        if self.zoom_level > 2.0:
-            sub_grid_size = self.grid_size / self.sub_grid_divisions
-            for x in range(int(start_x * self.sub_grid_divisions), int(end_x * self.sub_grid_divisions) + 1):
-                draw_line(
-                    int(x * sub_grid_size * self.zoom_level + self.offset.x),
-                    0,
-                    int(x * sub_grid_size * self.zoom_level + self.offset.x),
-                    screen_height,
-                    GRAY
+        if self.is_panning:
+            if is_mouse_button_down(MouseButton.MOUSE_BUTTON_MIDDLE):
+                current_mouse_position = get_mouse_position()
+                delta = Vector2(
+                    current_mouse_position.x - self.last_mouse_position.x,
+                    current_mouse_position.y - self.last_mouse_position.y,
                 )
-            for y in range(int(start_y * self.sub_grid_divisions), int(end_y * self.sub_grid_divisions) + 1):
-                draw_line(
-                    0,
-                    int(y * sub_grid_size * self.zoom_level + self.offset.y),
-                    screen_width,
-                    int(y * sub_grid_size * self.zoom_level + self.offset.y),
-                    GRAY
-                )
+                self.camera.target.x -= delta.x / self.camera.zoom
+                self.camera.target.y -= delta.y / self.camera.zoom
+                self.last_mouse_position = current_mouse_position
+            else:
+                self.is_panning = False
 
-        draw_rectangle(200, 200, 100, 100, WHITE)
+    def update(self):
+        # Handle camera input
+        self.handle_camera_input()
 
-        
-        self.toggle_menu()
-
+        # Render buttons and handle clicks
         for key, button in self.buttons.items():
             button.render()
             if button.is_clicked():
                 match key:
-                    case "MENU":
-                        if self.menu_open:
-                            self.menu_open = False
-                            self.buttons["MENU"].set_color(GRAY)
-                        else:
-                            self.menu_open = True
-                            self.buttons["MENU"].set_color(DARKGRAY)
-
-                    case "EXIT":
-                        log(TraceLogLevel.LOG_INFO, "Exiting application")
-                        close_window()
+                    case "PENCIL":
+                        self.on_hand = self.Pencil(self.camera)  # Pass camera to Pencil
                     case _:
                         print(f"Unknown button '{key}' clicked.")
 
+        # Start drawing within the camera context
+        begin_mode_2d(self.camera)
+        if self.on_hand:
+            self.on_hand.render()
+        end_mode_2d()
+
         return "canvas"
+    
 
-        
+    class Pencil:
 
-    def toggle_menu(self):
 
-        SLIDING_ANIMATION_SPEED = 1500
-        MENU_INITIAL_POSITION = -300
-        
-        if self.menu_open:
-            if self.menu_horizontal_position <= 0:
-                self.menu_horizontal_position += int(SLIDING_ANIMATION_SPEED * get_frame_time())
-                if self.menu_horizontal_position > 0:
-                    self.menu_horizontal_position = 0
-            draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
+        def __init__(self, camera, stroke_color=GOLDEN_YELLOW, stroke_width=8, stroke_threshold=1):
 
-        else:
-            if self.menu_horizontal_position >= MENU_INITIAL_POSITION:
-                self.menu_horizontal_position -= int(SLIDING_ANIMATION_SPEED * get_frame_time())
-                if self.menu_horizontal_position < MENU_INITIAL_POSITION:
-                    self.menu_horizontal_position = MENU_INITIAL_POSITION
-            draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
+            self.camera = camera
+            self.stroke_color = stroke_color
+            self.stroke_width = stroke_width
+            self.stroke_threshold = stroke_threshold
+            self.current_stroke = []  # Temporary stroke being drawn
+            self.strokes = []  # All completed strokes
+
+        def render(self):
+            # Undo last stroke
+            if is_key_pressed(KeyboardKey.KEY_Z) and is_key_down(KeyboardKey.KEY_LEFT_CONTROL):
+                if self.strokes:
+                    self.strokes.pop()
+
+            # Clear all strokes
+            if is_key_pressed(KeyboardKey.KEY_R):
+                self.strokes.clear()
+
+            # Start a new stroke
+            if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT):
+                self.current_stroke.clear()
+
+            # Add points to the current stroke
+            if is_mouse_button_down(MouseButton.MOUSE_BUTTON_LEFT):
+                current_mouse_position = get_screen_to_world_2d(get_mouse_position(), self.camera)
+                if not self.current_stroke or vector_2distance(self.current_stroke[-1][0], current_mouse_position) > self.stroke_threshold:
+                    self.current_stroke.append([current_mouse_position, Circle(current_mouse_position, self.stroke_width / 2)])
+
+            # Finalize the stroke
+            if is_mouse_button_released(MouseButton.MOUSE_BUTTON_LEFT) and self.current_stroke:
+                self.strokes.append(self.current_stroke[:])
+                self.current_stroke.clear()
+
+            # Render completed strokes
+            for stroke in self.strokes:
+                for i in range(1, len(stroke)):
+                    draw_line_ex(stroke[i - 1][0], stroke[i][0], self.stroke_width, self.stroke_color)
+                    draw_circle_v(stroke[i][1].position, stroke[i][1].radius, self.stroke_color)
+
+            # Render the current stroke being drawn
+            for i in range(1, len(self.current_stroke)):
+                draw_line_ex(self.current_stroke[i - 1][0], self.current_stroke[i][0], self.stroke_width, self.stroke_color)
+                draw_circle_v(self.current_stroke[i][1].position, self.current_stroke[i][1].radius, self.stroke_color)
 
 
 
@@ -687,7 +677,7 @@ class Builder:
                 if self.menu_horizontal_position < MENU_INITIAL_POSITION:
                     self.menu_horizontal_position = MENU_INITIAL_POSITION
             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
-
+            
 
 
 def draw_centered_text_ex(text, font, font_size, y_position, color=RAYWHITE):
