@@ -13,8 +13,8 @@ global log
 global RM
 
 # CONSTANTS
-APP_WIDTH = 800
-APP_HEIGHT = 450
+APP_WIDTH = 1920 # 1920
+APP_HEIGHT = 1080  # 1080
 
 MATTE_BLACK = Color(51, 51, 51, 255)
 GOLDEN_YELLOW = Color(255, 223, 0, 255)
@@ -113,7 +113,7 @@ class ResourceManager:
 
 class Button:
     
-    def __init__(self, rec: Rectangle, color: Color, text=None, font_size=30, icon=None, roundness=None):
+    def __init__(self, rec: Rectangle, color: Color, text=None, font_size=50, icon=None, roundness=None):
 
         self.rectangle = rec
         self.color = color
@@ -141,7 +141,7 @@ class Button:
         x = self.rectangle.x + (self.rectangle.width - text_width) / 2
         y = self.rectangle.y + (self.rectangle.height - text_height) / 2
 
-        draw_text_ex(self.font, text, Vector2(x, y), font_size, 0, DARKGRAY if not self.is_hovered() else RAYWHITE)
+        draw_text_ex(self.font, text, Vector2(x, y), font_size, 0, DARKGRAY if not self.is_hovered() else GOLDEN_YELLOW)
 
 
     def is_hovered(self) -> bool:
@@ -149,9 +149,9 @@ class Button:
         mouse = get_mouse_position()
         if check_collision_point_rec(mouse, self.rectangle):
             if self.roundness:
-                draw_rectangle_rounded_lines(self.rectangle, self.roundness, 0, 1, RAYWHITE)
+                draw_rectangle_rounded_lines(self.rectangle, self.roundness, 0, 10, GOLDEN_YELLOW)
             else:
-                draw_rectangle_lines_ex(self.rectangle, 1, RAYWHITE)
+                draw_rectangle_lines_ex(self.rectangle, 10, GOLDEN_YELLOW)
             return True
         return False
 
@@ -704,7 +704,7 @@ def draw_centered_text_ex(text, font, font_size, y_position, color=RAYWHITE):
 
 class MessageBox: # TODO: COMBINE MESSAGEBOX AND BUTTON CLASS
 
-    def __init__(self, rect: Rectangle, font, base_font_size=80, min_font_size=10, roundness=0.25, background_color=GRAY, hovered_color=LIGHTGRAY, text_color=RAYWHITE):
+    def __init__(self, rect: Rectangle, font, base_font_size=250, min_font_size=10, roundness=0.25, background_color=GRAY, hovered_color=LIGHTGRAY, text_color=RAYWHITE):
         
         self.rect = rect
         self.font = font
@@ -833,13 +833,13 @@ class Calculator:
 
     def __init__(self):
         # Message boxes for matrix size input
-        self.column_box = MessageBox(Rectangle(200, 125, 150, 150), RM.get("mainfont"))
-        self.row_box = MessageBox(Rectangle(450, 125, 150, 150), RM.get("mainfont"))
+        self.column_box = MessageBox(Rectangle(475, 350, 350, 350), RM.get("mainfont"))
+        self.row_box = MessageBox(Rectangle(1100, 350, 350, 350), RM.get("mainfont"))
 
         # Buttons
         self.buttons = {
-            "NEXT": Button(Rectangle(325, 350, 150, 50), GRAY, text="NEXT"),
-            "SOLVE": Button(Rectangle(325, 350, 150, 50), GRAY, text="SOLVE")
+            "NEXT": Button(Rectangle(810, 800, 300, 100), GRAY, text="NEXT", font_size=50),
+            "SOLVE": Button(Rectangle(325, 375, 150, 50), GRAY, text="SOLVE", font_size=50)
         }
 
         # Matrix message boxes
@@ -851,7 +851,7 @@ class Calculator:
         Vector2(APP_WIDTH / 2, APP_HEIGHT / 2),        # target
         Vector2(APP_WIDTH / 2, APP_HEIGHT / 2),        # offset
         0,                                             # rotation                   
-        1.0)  
+        5.0)                                           # zoom
 
         # Mouse panning state
         self.is_panning = False
@@ -1010,7 +1010,7 @@ class Calculator:
     def update_matrix_size(self) -> bool:
         """Handle matrix size input and transition to matrix content input."""
         # Draw title
-        draw_centered_text_ex("GAUSSIAN ELIMINATION", RM.get("mainfont"), 50, 25, RAYWHITE)
+        draw_centered_text_ex("Specify Matrix Size", RM.get("mainfont"), 120, 50, GOLDEN_YELLOW)
 
         # Check and handle input for row and column boxes
         self.column_box.check_focus()
@@ -1023,7 +1023,7 @@ class Calculator:
         self.row_box.render()
 
         # Draw "X" between the boxes
-        draw_centered_text_ex("X", RM.get("mainfont"), 100, 150, RAYWHITE)
+        draw_centered_text_ex("X", RM.get("mainfont"), 320, 370, RAYWHITE)
 
         # Render buttons
         self.buttons["NEXT"].render()
@@ -1141,8 +1141,12 @@ class Calculator:
             end_mode_2d()
 
             # Check if Enter key is pressed to solve the matrix
-            if is_key_pressed(KeyboardKey.KEY_ENTER):
+            # self.buttons["SOLVE"].render()
+            if self.buttons["SOLVE"].is_clicked() or is_key_pressed(KeyboardKey.KEY_ENTER):
                 self.solve_matrix()
+
+            # if is_key_pressed(KeyboardKey.KEY_ENTER):
+            #     self.solve_matrix()
 
         return "calculator"
 
@@ -1158,8 +1162,8 @@ class MainMenu:
         self.title = "Circuit "
         self.words = ["Calculator", "Analyzer"]  
         self.current_word_index = 0
-        self.position = Vector2(30, 10)
-        self.font_size = 80
+        self.position = Vector2(110, 50)
+        self.font_size = 160
         self.spacing = 0
         self.text_color = GOLDEN_YELLOW
         self.displayed_text = ""
@@ -1172,9 +1176,9 @@ class MainMenu:
         self.is_typing = True  # True if typing, False if erasing
 
         self.buttons = {}
-        self.buttons["FREEHAND"] = Button(Rectangle(30, 100, 400, 150), DARKGRAY)
-        self.buttons["BUILDER"] = Button(Rectangle(30, 275, 400, 150), DARKGRAY)
-        self.buttons["MATRIX"] = Button(Rectangle(450, 100, 310, 325), DARKGRAY)
+        self.buttons["FREEHAND"] = Button(Rectangle(110, 250, 830, 325), DARKGRAY)
+        self.buttons["BUILDER"] = Button(Rectangle(110, 625, 830, 325), DARKGRAY)
+        self.buttons["MATRIX"] = Button(Rectangle(1000, 250, 800, 700), DARKGRAY)
 
 
     def animate_title(self):
@@ -1213,7 +1217,7 @@ class MainMenu:
         if self.cursor_visible:
             cursor_x = self.position.x + measure_text_ex(self.font, self.displayed_text, self.font_size, self.spacing).x + 5
             cursor_y = self.position.y + self.font_size * 0.12
-            cursor_width = 25
+            cursor_width = 50
             cursor_height = int(self.font_size * 0.7)
             draw_rectangle(int(cursor_x), int(cursor_y), int(cursor_width), int(cursor_height), fade(RAYWHITE, 0.9))
 
@@ -1254,7 +1258,7 @@ def load_resources():
         RM.load("mainfont-mid", "assets/fonts/JetBrainsMono-Medium.ttf", FONT)
         RM.load("mainfont-reg", "assets/fonts/JetBrainsMono-Regular.ttf", FONT)
         RM.load("mainfont-semi", "assets/fonts/JetBrainsMono-SemiBold.ttf", FONT)
-
+    
 
 
 class Application():
@@ -1300,6 +1304,9 @@ class Application():
 
         self.test = Notifier("Hello World")
 
+        maximize_window()
+
+
 
     def __call__(self):
 
@@ -1332,7 +1339,7 @@ class Application():
 
             begin_texture_mode(self.target)
             
-            clear_background(DARKGRAY)
+            clear_background(MATTE_BLACK)
 
             # BOOM GUMANA SPAGHETTI CODE 101% WORKING
             if self.app_state in self.states.keys():
@@ -1342,6 +1349,7 @@ class Application():
                 self.app_state = "main_menu"
 
             # self.test.render()
+
                         
             end_texture_mode()
  
