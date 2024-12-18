@@ -170,170 +170,6 @@ class Button:
 
 
 
-class Component:
-
-    def __init__(self, position: Vector2, name: str):
-        self.position = position  
-        self.name = name          
-        self.is_dragging = False 
-        self.color = YELLOW
-
-
-    def update(self):
-
-        if self.is_dragging:
-            self.position = get_mouse_position()  
-
-
-    def start_drag(self):
-
-        self.is_dragging = True
-
-
-    def stop_drag(self):
-
-        self.is_dragging = False
-
-
-
-# class Wire(Component):
-
-#     def __init__(self):
-#         current_mouse_pos = get_mouse_position()
-#         rec = Rectangle(current_mouse_pos.x, current_mouse_pos.y, 50, 8)
-#         super().__init__(Vector2(rec.x, rec.y), "Wire")
-#         self.rectangle = rec
-#         self.drag_offset = Vector2(0, 0)  
-#         self.rotation = 0
-#         self.stop_drag()
-
-#     def update(self):
-
-#         self.rectangle.x = self.position.x
-#         self.rectangle.y = self.position.y
-
-#         if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_LEFT) and is_mouse_button_down(MouseButton.MOUSE_BUTTON_LEFT):
-#             if self.is_dragging:
-#                 mouse_pos = get_mouse_position()
-#                 self.position = Vector2(mouse_pos.x - self.drag_offset.x, mouse_pos.y - self.drag_offset.y)
-#                 if is_mouse_button_pressed(MouseButton.MOUSE_BUTTON_RIGHT):
-#                     self.rotation += 45
-#             elif check_collision_point_rec(
-#                 get_mouse_position(),
-#                 Rectangle(
-#                     self.rectangle.x,
-#                     self.rectangle.y,
-#                     self.rectangle.width,
-#                     self.rectangle.height,
-#                 ),
-#             ):
-#                 mouse_pos = get_mouse_position()
-#                 self.drag_offset = Vector2(mouse_pos.x - self.position.x, mouse_pos.y - self.position.y)
-#                 self.start_drag()
-#         else:
-#             self.stop_drag()
-
-#         draw_rectangle_pro(self.rectangle, vector2_zero(), self.rotation, self.color)
-
-#         if not self.is_dragging and check_collision_point_rec(
-#             get_mouse_position(),
-#             Rectangle(
-#                 self.rectangle.x,
-#                 self.rectangle.y,
-#                 self.rectangle.width,
-#                 self.rectangle.height,
-#             ),
-#         ):
-#             draw_rectangle_lines_ex(
-#                 Rectangle(
-#                     self.rectangle.x - 5,
-#                     self.rectangle.y - 5,
-#                     self.rectangle.width + 10,
-#                     self.rectangle.height + 10,
-#                 ),
-#                 1,
-#                 RAYWHITE,
-#             )
-
- 
-
-class Terminal(Component):
-
-    def __init__(self):
-        current_mouse_pos = get_mouse_position()
-        rec = Rectangle(current_mouse_pos.x, current_mouse_pos.y, 80, 80)
-        self.texture = load_texture("assets/terminal.png")
-        super().__init__(Vector2(rec.x, rec.y), "Terminal")
-        self.rectangle = rec
-        self.drag_offset = Vector2(0, 0)  
-        self.rotation = 0
-        self.stop_drag()
-
-
-    def get_hitbox(self) -> Rectangle:
-        return Rectangle(
-            self.rectangle.x - self.rectangle.width / 2,
-            self.rectangle.y - self.rectangle.height / 2,
-            self.rectangle.width,
-            self.rectangle.height,
-        )
-
-    
-    def update(self):
-        self.rectangle.x = self.position.x
-        self.rectangle.y = self.position.y
-
-        if  is_mouse_button_down(MouseButton.MOUSE_BUTTON_LEFT):
-            if self.is_dragging:
-                mouse_pos = get_mouse_position()
-                self.position = Vector2(mouse_pos.x - self.drag_offset.x, mouse_pos.y - self.drag_offset.y)
-    
-            elif check_collision_point_rec(
-                get_mouse_position(),
-                Rectangle(
-                    self.rectangle.x - self.rectangle.width / 2,
-                    self.rectangle.y - self.rectangle.width / 2,
-                    self.rectangle.width,
-                    self.rectangle.width,
-                ),
-            ):
-                mouse_pos = get_mouse_position()
-                self.drag_offset = Vector2(mouse_pos.x - self.position.x, mouse_pos.y - self.position.y)
-                self.start_drag()
-        else:
-            self.stop_drag()
-
-        # draw_rectangle_pro(self.rectangle, Vector2(self.rectangle.width / 2, self.rectangle.height / 2), self.rotation, self.color)
-        draw_texture_pro(self.texture, Rectangle(0, 0, self.texture.width, self.texture.height), Rectangle(self.rectangle.x, self.rectangle.y, self.rectangle.width, self.rectangle.height), Vector2(self.rectangle.width / 2, self.rectangle.height / 2), self.rotation, WHITE)
-
-        if not self.is_dragging and check_collision_point_rec(
-            get_mouse_position(),
-            Rectangle(
-                self.rectangle.x - self.rectangle.width / 2,
-                self.rectangle.y - self.rectangle.width / 2,
-                self.rectangle.width,
-                self.rectangle.width,
-            ),
-        ):
-            draw_rectangle_lines_ex(
-                Rectangle(
-                    self.rectangle.x - self.rectangle.width / 2,
-                    self.rectangle.y - self.rectangle.width / 2,
-                    self.rectangle.width,
-                    self.rectangle.width,
-                ),
-                1,
-                RAYWHITE,
-            )
-
-            if is_key_pressed(KeyboardKey.KEY_A) or is_key_pressed(KeyboardKey.KEY_LEFT):
-                    self.rotation -= 45
-
-            if is_key_pressed(KeyboardKey.KEY_D) or is_key_pressed(KeyboardKey.KEY_RIGHT):
-                    self.rotation += 45
-
-
-
 class Canvas:
 
     
@@ -400,6 +236,8 @@ class Canvas:
         begin_mode_2d(self.camera)
         if self.on_hand:
             self.on_hand.render()
+        if is_key_pressed(KeyboardKey.KEY_ENTER):
+            take_screenshot("canvas.png")
         end_mode_2d()
 
         return "canvas"
@@ -453,189 +291,6 @@ class Canvas:
                 draw_line_ex(self.current_stroke[i - 1][0], self.current_stroke[i][0], self.stroke_width, self.stroke_color)
                 draw_circle_v(self.current_stroke[i][1].position, self.current_stroke[i][1].radius, self.stroke_color)
 
-
-
-# class Canvas:
-
-#     def __init__(self):
-
-#         self.buttons = {}
-#         self.buttons["MENU"] = Button(Rectangle(5, 5, 25, 20), GRAY)
-#         self.menu_open = False
-#         self.menu_horizontal_position = -300 # flag for menu position
-
-#         self.texture = load_texture("assets/three_dots.jpg")
-
-#         self.test = []
-
-
-#     def update(self):
-
-#         if is_key_pressed(KeyboardKey.KEY_SPACE):
-
-#             self.test.append(Terminal())
-#             log(TraceLogLevel.LOG_INFO, "Wire added to canvas")
-
-#         if self.test:
-#             for wire in self.test:
-#                 wire.update()
-
-#         if is_key_pressed(KeyboardKey.KEY_R):
-#             self.test.clear()
-
-#         self.toggle_menu()
-
-#         for key, button in self.buttons.items():
-#             button.render()
-#             if button.is_clicked():
-#                 match key:
-#                     case "MENU":
-#                         if self.menu_open:
-#                             self.menu_open = False
-#                             self.buttons["MENU"].set_color(GRAY)
-#                         else:
-#                             self.menu_open = True
-#                             self.buttons["MENU"].set_color(DARKGRAY)
-
-#                     case "EXIT":
-#                         log(TraceLogLevel.LOG_INFO, "Exiting application")
-#                         close_window()
-#                     case _:
-#                         print(f"Unknown button '{key}' clicked.")
-
-        
-
-#     def toggle_menu(self):
-
-#         SLIDING_ANIMATION_SPEED = 1500
-#         MENU_INITIAL_POSITION = -300
-        
-#         if self.menu_open:
-#             if self.menu_horizontal_position <= 0:
-#                 self.menu_horizontal_position += int(SLIDING_ANIMATION_SPEED * get_frame_time())
-#                 if self.menu_horizontal_position > 0:
-#                     self.menu_horizontal_position = 0
-#             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
-
-#         else:
-#             if self.menu_horizontal_position >= MENU_INITIAL_POSITION:
-#                 self.menu_horizontal_position -= int(SLIDING_ANIMATION_SPEED * get_frame_time())
-#                 if self.menu_horizontal_position < MENU_INITIAL_POSITION:
-#                     self.menu_horizontal_position = MENU_INITIAL_POSITION
-#             draw_rectangle(self.menu_horizontal_position, 0, 300, 450, GRAY)
-
-
-
-class Builder:
-
-
-    def __init__(self):
-
-        # grid settings
-        self.grid_size = 50 
-        self.sub_grid_divisions = 5 
-        self.zoom_level = 1.0  
-        self.min_zoom = 0.2  
-        self.max_zoom = 3.0  
-        self.offset = Vector2(0, 0) 
-
-        # buttons
-        self.buttons = {}
-        self.buttons["MENU"] = Button(Rectangle(5, 5, 25, 20), GRAY)
-        self.menu_open = False
-        self.menu_horizontal_position = -300 # flag for menu position
-
-
-    def update(self) -> str:
-
-        zoom_increment = 0.1
-        mouse_wheel_move = get_mouse_wheel_move()
-        if mouse_wheel_move != 0:
-            prev_zoom = self.zoom_level
-            self.zoom_level += zoom_increment * mouse_wheel_move
-            self.zoom_level = clamp(self.zoom_level, self.min_zoom, self.max_zoom)
-
-
-            mouse_pos = get_mouse_position()
-            zoom_factor = self.zoom_level / prev_zoom
-            self.offset.x = mouse_pos.x - (mouse_pos.x - self.offset.x) * zoom_factor
-            self.offset.y = mouse_pos.y - (mouse_pos.y - self.offset.y) * zoom_factor
-
-
-        if is_mouse_button_down(MouseButton.MOUSE_BUTTON_MIDDLE):
-            mouse_delta = get_mouse_delta()
-            self.offset.x += mouse_delta.x
-            self.offset.y += mouse_delta.y
-
-        #DRAW
-        screen_width = APP_WIDTH
-        screen_height = APP_HEIGHT
-
-        start_x = -self.offset.x / (self.grid_size * self.zoom_level)
-        end_x = (screen_width - self.offset.x) / (self.grid_size * self.zoom_level)
-        start_y = -self.offset.y / (self.grid_size * self.zoom_level)
-        end_y = (screen_height - self.offset.y) / (self.grid_size * self.zoom_level)
-
-        for x in range(int(start_x), int(end_x) + 1):
-            draw_line(
-                int(x * self.grid_size * self.zoom_level + self.offset.x),
-                0,
-                int(x * self.grid_size * self.zoom_level + self.offset.x),
-                screen_height,
-                GRAY
-            )
-        for y in range(int(start_y), int(end_y) + 1):
-            draw_line(
-                0,
-                int(y * self.grid_size * self.zoom_level + self.offset.y),
-                screen_width,
-                int(y * self.grid_size * self.zoom_level + self.offset.y),
-                GRAY
-            )
-
-        if self.zoom_level > 2.0:
-            sub_grid_size = self.grid_size / self.sub_grid_divisions
-            for x in range(int(start_x * self.sub_grid_divisions), int(end_x * self.sub_grid_divisions) + 1):
-                draw_line(
-                    int(x * sub_grid_size * self.zoom_level + self.offset.x),
-                    0,
-                    int(x * sub_grid_size * self.zoom_level + self.offset.x),
-                    screen_height,
-                    GRAY
-                )
-            for y in range(int(start_y * self.sub_grid_divisions), int(end_y * self.sub_grid_divisions) + 1):
-                draw_line(
-                    0,
-                    int(y * sub_grid_size * self.zoom_level + self.offset.y),
-                    screen_width,
-                    int(y * sub_grid_size * self.zoom_level + self.offset.y),
-                    GRAY
-                )
-
-        draw_rectangle(200, 200, 100, 100, WHITE)
-
-        
-        self.toggle_menu()
-
-        for key, button in self.buttons.items():
-            button.render()
-            if button.is_clicked():
-                match key:
-                    case "MENU":
-                        if self.menu_open:
-                            self.menu_open = False
-                            self.buttons["MENU"].set_color(GRAY)
-                        else:
-                            self.menu_open = True
-                            self.buttons["MENU"].set_color(DARKGRAY)
-
-                    case "EXIT":
-                        log(TraceLogLevel.LOG_INFO, "Exiting application")
-                        close_window()
-                    case _:
-                        print(f"Unknown button '{key}' clicked.")
-
-        return "builder"
 
 
     def toggle_menu(self):
@@ -817,6 +472,73 @@ class Notifier:
         self.button["OK"].render()
 
 
+class PopupWindow:
+
+    def __init__(self, message, font, rect=Rectangle(100, 100, APP_WIDTH - 200, APP_HEIGHT - 200), font_size=40, line_spacing=1.5):
+        self.message = message
+        self.font = font
+        self.rect = rect
+        self.font_size = font_size
+        self.line_spacing = line_spacing
+        self.is_visible = False
+        self.scroll_offset = 0  # Tracks how far the content is scrolled
+        self.scroll_speed = 30  # Controls scroll sensitivity
+        self.close_button = Button(Rectangle(rect.x + rect.width - 250, rect.y + rect.height - 125, 200, 80), color=GRAY, text="Close", font_size=40)
+    
+    def show(self, message):
+
+        """Display the popup window with the given message."""
+        self.message = message
+        self.is_visible = True
+        self.scroll_offset = 0  # Reset scroll offset when a new message is shown
+
+    def render(self):
+        """Render the popup window if it is visible."""
+        if not self.is_visible:
+            return
+
+        # Draw the popup background
+        draw_rectangle_rec(self.rect, DARKGRAY)
+        draw_rectangle_lines_ex(self.rect, 5, RAYWHITE)
+
+        # Split the message into lines
+        lines = self.message.split("\n")
+        line_height = int(self.font_size * self.line_spacing)
+        total_content_height = len(lines) * line_height
+        visible_content_height = self.rect.height - 40  # Account for padding
+        max_scroll = max(0, total_content_height - visible_content_height)
+
+        # Adjust scroll offset with mouse wheel
+        self.scroll_offset += get_mouse_wheel_move() * -self.scroll_speed
+        self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
+
+        # Draw the content inside the popup with scrolling
+        text_start_y = self.rect.y + 20 - self.scroll_offset
+        text_x = self.rect.x + 20
+
+        # Calculate visible line range to avoid rendering extra lines
+        start_line = max(0, self.scroll_offset // line_height)  # First visible line
+        visible_lines = visible_content_height // line_height   # Number of fully visible lines
+        end_line = min(len(lines), start_line + visible_lines)  # Last fully visible line
+
+        for i in range(int(start_line),int(end_line)):
+            line_y = text_start_y + i * line_height
+            if self.rect.y <= line_y < self.rect.y + self.rect.height:  # Only render visible lines
+                draw_text_ex(self.font, lines[i], Vector2(text_x, line_y), self.font_size, 2, RAYWHITE)
+
+        # Draw the scrollbar
+        if total_content_height > visible_content_height:
+            scrollbar_height = visible_content_height * (visible_content_height / total_content_height)
+            scrollbar_y = self.rect.y + 20 + (self.scroll_offset / total_content_height) * (visible_content_height - scrollbar_height)
+            draw_rectangle(int(self.rect.x + self.rect.width - 20), int(scrollbar_y), 10, int(scrollbar_height), LIGHTGRAY)
+
+        # Render the Close button
+        self.close_button.render()
+        if self.close_button.is_clicked():
+            self.is_visible = False
+
+
+
 
 
 class Calculator:
@@ -829,7 +551,7 @@ class Calculator:
         # Buttons
         self.buttons = {
             "NEXT": Button(Rectangle(810, 800, 300, 100), GRAY, text="NEXT", font_size=50),
-            "SOLVE": Button(Rectangle(325, 375, 150, 50), GRAY, text="SOLVE", font_size=50)
+            "SOLVE": Button(Rectangle(810, 950, 300, 100), GRAY, text="SOLVE", font_size=50)
         }
 
         # Matrix message boxes
@@ -846,6 +568,12 @@ class Calculator:
         # Mouse panning state
         self.is_panning = False
         self.last_mouse_position = Vector2(0, 0)
+
+        # self.show_answer = False
+
+        self.popup = PopupWindow("", RM.get("mainfont"))
+
+        self.solution = ""
 
 
     def collect_matrix_input(self):
@@ -1029,9 +757,11 @@ class Calculator:
                     return True  # Transition to matrix input
                 else:
                     log(TraceLogLevel.LOG_WARNING, "Matrix must be square and non-zero!")
+                    self.popup.show("Matrix must be square and non-zero!")
 
             except ValueError:
                 log(TraceLogLevel.LOG_WARNING, "Invalid matrix size input!")
+                self.popup.show("Invalid matrix size input!")
         
         return False
 
@@ -1042,37 +772,45 @@ class Calculator:
         The input matrix is modified in place to transform it to row-echelon form.
         """
         n = len(matrix)
+        if len(matrix[0]) != n + 1:
+            raise ValueError("Matrix dimensions do not match for an augmented system.")
+
         log(TraceLogLevel.LOG_INFO, "Starting Gaussian elimination...")
+        self.solution += "Starting Gaussian elimination...\n"
 
         for i in range(n):
             # Step 1: Find the pivot element
             pivot = matrix[i][i]
-            if pivot == 0:
-                log(TraceLogLevel.LOG_WARNING, f"Zero pivot encountered at row {i}.")
+            if abs(pivot) < 1e-12:  # Small epsilon for near-zero pivot
+                log(TraceLogLevel.LOG_WARNING, f"Near-zero pivot encountered at row {i}.")
+                self.solution += f"Near-zero pivot encountered at row {i}.\n"
                 # Swap with a non-zero row if possible
                 for k in range(i + 1, n):
-                    if matrix[k][i] != 0:
+                    if abs(matrix[k][i]) > 1e-12:
                         matrix[i], matrix[k] = matrix[k], matrix[i]
                         log(TraceLogLevel.LOG_INFO, f"Swapped row {i} with row {k}.")
+                        self.solution += f"Swapped row {i} with row {k}.\n"
                         pivot = matrix[i][i]
                         break
                 else:
                     raise ValueError("Matrix is singular and cannot be solved.")
 
             # Step 2: Normalize the pivot row
-            for j in range(i, n + 1):
-                matrix[i][j] /= pivot
+            matrix[i][i:] = [x / pivot for x in matrix[i][i:]]
             log(TraceLogLevel.LOG_INFO, f"Normalized row {i}: {matrix[i]}")
+            self.solution += f"Normalized row {i}: {matrix[i]}\n"
 
             # Step 3: Eliminate below the pivot
             for k in range(i + 1, n):
                 factor = matrix[k][i]
-                for j in range(i, n + 1):
-                    matrix[k][j] -= factor * matrix[i][j]
+                matrix[k][i:] = [matrix[k][j] - factor * matrix[i][j] for j in range(i, n + 1)]
                 log(TraceLogLevel.LOG_INFO, f"Eliminated row {k} using row {i}: {matrix[k]}")
+                self.solution += f"Eliminated row {k} using row {i}: {matrix[k]}\n"
 
         log(TraceLogLevel.LOG_INFO, "Gaussian elimination complete.")
+        self.solution += "Gaussian elimination complete.\n"
         return matrix
+
 
 
     def back_substitution(self, matrix):
@@ -1088,6 +826,7 @@ class Calculator:
                 solution[i] -= matrix[i][j] * solution[j]
             solution[i] /= matrix[i][i]
             log(TraceLogLevel.LOG_INFO, f"Back substitution at row {i}: x[{i}] = {solution[i]}")
+            self.solution += f"Back substitution at row {i}: x[{i}] = {solution[i]}\n"
 
         return solution
 
@@ -1097,25 +836,27 @@ class Calculator:
         """
         matrix = self.collect_matrix_input()
         if not matrix:
-            log(TraceLogLevel.LOG_WARNING, "Matrix input is invalid.")
+            self.popup.show("Matrix input is invalid. Please check your entries.")
             return
 
         try:
             # Perform Gaussian elimination
             log(TraceLogLevel.LOG_INFO, "Performing Gaussian elimination...")
+            self.solution += "Performing Gaussian elimination...\n"
             self.gaussian_elimination(matrix)
 
             # Perform back substitution
             log(TraceLogLevel.LOG_INFO, "Performing back substitution...")
+            self.solution += "Performing back substitution...\n"
             solution = self.back_substitution(matrix)
 
-            # Display solution
-            log(TraceLogLevel.LOG_INFO, "Solution obtained:")
-            for i, x in enumerate(solution):
-                print(f"x[{i}] = {x}")
+            # Display solution in the popup
+            solution_text = "\n".join([f"x[{i}] = {x:.2f}" for i, x in enumerate(solution)])
+            self.solution += f"Solution:\n{solution_text}\n"
 
         except ValueError as e:
-            log(TraceLogLevel.LOG_WARNING, f"Error during solving: {e}")
+            log(TraceLogLevel.LOG_WARNING, f"Error: {str(e)}")
+            self.solution += f"Error: {str(e)}\n"
 
     def update(self) -> str:
         """Main update loop."""
@@ -1131,12 +872,16 @@ class Calculator:
             end_mode_2d()
 
             # Check if Enter key is pressed to solve the matrix
-            # self.buttons["SOLVE"].render()
+            self.buttons["SOLVE"].render()
             if self.buttons["SOLVE"].is_clicked() or is_key_pressed(KeyboardKey.KEY_ENTER):
                 self.solve_matrix()
+                self.popup.show(self.solution)
+                self.solution = ""
 
             # if is_key_pressed(KeyboardKey.KEY_ENTER):
             #     self.solve_matrix()
+
+        self.popup.render()
 
         return "calculator"
 
@@ -1167,7 +912,6 @@ class MainMenu:
 
         self.buttons = {}
         self.buttons["FREEHAND"] = Button(Rectangle(110, 250, 830, 325), DARKGRAY)
-        self.buttons["BUILDER"] = Button(Rectangle(110, 625, 830, 325), DARKGRAY)
         self.buttons["MATRIX"] = Button(Rectangle(1000, 250, 800, 700), DARKGRAY)
 
 
@@ -1226,10 +970,6 @@ class MainMenu:
                     case "FREEHAND":
                         log(TraceLogLevel.LOG_INFO, "Freehand button clicked")
                         return "canvas"
-
-                    case "BUILDER":
-                        log(TraceLogLevel.LOG_INFO, "Builder button clicked")
-                        return "builder"
                         
                     case "MATRIX":
                         log(TraceLogLevel.LOG_INFO, "Matrix button clicked")
@@ -1278,13 +1018,11 @@ class Application():
         1.0)                                           # zoom
 
         self.canvas = Canvas()
-        self.builder = Builder()
         self.calculator = Calculator()
         self.main_menu = MainMenu()
 
         self.states = {
             "canvas": self.canvas.update,
-            "builder": self.builder.update,
             "calculator": self.calculator.update,
             "main_menu": self.main_menu.update,
         }
